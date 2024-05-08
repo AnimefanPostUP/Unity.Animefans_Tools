@@ -515,11 +515,12 @@ public class TimelineView
 
 
             //Draw the Waveform using the bit depth relatively and create a box
-            float resolution = 100*audiotrackmgr.audioTracks[i].clip.length * timelinezoom.x;
+            float resolution = 250*audiotrackmgr.audioTracks[i].clip.length * timelinezoom.x / 1000;
+            float sumsampling=12;
             //get the max value that the bit depth can reach
             float maxvalue = Mathf.Pow(2, audiotrackmgr.audioTracks[i]._targetBitDepth) - 1;
             //iterate 100 Times 
-            for (float j = 0; j < resolution; j++)
+            for (float j = 0; j < resolution*sumsampling; j++)
             {
 
 
@@ -528,7 +529,7 @@ public class TimelineView
                 for (int ch = 0; ch < audiotrackmgr.audioTracks[i].audioData.Length; ch++)
                 {
                     //getting the next closest starting byte of a sample using modulo
-                    int sampleIndex = (int)(audiotrackmgr.audioTracks[i].audioData[ch].Length * (j / resolution)) - (((int)(audiotrackmgr.audioTracks[i].audioData[ch].Length * (j / resolution))) % (audiotrackmgr.audioTracks[i]._targetBitDepth / 8));
+                    int sampleIndex = (int)(audiotrackmgr.audioTracks[i].audioData[ch].Length * (j / (resolution*sumsampling))) - (((int)(audiotrackmgr.audioTracks[i].audioData[ch].Length * (j / (resolution*sumsampling)))) % (audiotrackmgr.audioTracks[i]._targetBitDepth / 8));
 
                     int samplebuffer = 0;
 
@@ -540,14 +541,21 @@ public class TimelineView
                         samplebuffer += audiotrackmgr.audioTracks[i].audioData[ch][sampleIndex + b];
                     }
 
-                    if (sampleValue < samplebuffer)
-                    {
-                        sampleValue = samplebuffer;
-                    }
+              
+                        sampleValue = (samplebuffer +(sampleValue*1))/2;
+                    
 
                 }
-                //Draw the sample value
-                EditorGUI.DrawRect(new Rect(_x + ((j / resolution) * (_width/2)), _y + _height - ((sampleValue / (maxvalue)) * _height), (_width/2) / resolution, ((sampleValue / (maxvalue))) * _height), GetRGBA(ColorRGBA.red));
+
+                if (j%sumsampling==0 && false){
+                EditorGUI.DrawRect(new Rect(
+                    (int)(_x + ((j / (resolution)) * (_width)))/sumsampling, 
+                    (int)(_y + (_height/2)-(sampleValue / (maxvalue)) * _height/2),
+                    (int)((_width) / (resolution)), 
+                    (int)((sampleValue / (maxvalue)) * _height)
+                    
+                ),GetRGBA(ColorRGBA.red));
+                }
                 //Testrect
                 //EditorGUI.DrawRect(new Rect(_x , _y, _width, _height), GetRGBA(ColorRGBA.red));
 
@@ -599,8 +607,8 @@ public class TimelineView
         if (doOverlay)
         {
             //Draw 2 White Boxes to indicate the position
-            EditorGUI.DrawRect(new Rect( (widthTimeline) / 2 - 1, 0, 2, 900), GetRGBA(ColorRGBA.white));
-            EditorGUI.DrawRect(new Rect(0, (500) - 1, 900, 2), GetRGBA(ColorRGBA.white));
+            EditorGUI.DrawRect(new Rect(xPos + (widthTimeline) / 2 - 1, 0, 2, 900), GetRGBA(ColorRGBA.white));
+            EditorGUI.DrawRect(new Rect(0, (250) - 1, 2000, 2), GetRGBA(ColorRGBA.white));
         }
 
         return doRepaint;
