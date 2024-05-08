@@ -64,7 +64,7 @@ public class Audiotimeline : EditorWindow
     void init_audiomanager()
     {
         audioManager = new AudiotrackManager();
-        timelineView = new TimelineView(100, 20, audioManager);
+        timelineView = new TimelineView(500, 20, audioManager);
     }
 
     //on disable
@@ -80,7 +80,7 @@ public class Audiotimeline : EditorWindow
     {
 
         //Check if even is control and scrollwheel
-        if (Event.current.type == EventType.ScrollWheel && Event.current.control)
+        if (Event.current.type == EventType.ScrollWheel && (Event.current.control || Event.current.alt))
         {
             timelineView.timelinezoom.x -= (Event.current.delta.y * 4);
 
@@ -94,7 +94,7 @@ public class Audiotimeline : EditorWindow
 
         GUILayout.BeginHorizontal();
         GUILayout.BeginVertical(GUILayout.Width(splitviewer.splitPosition));
-        
+
         GUILayout.EndVertical();
 
         if (splitviewer.drawSplit(Event.current, position)) Repaint();
@@ -308,7 +308,7 @@ public class TimelineView
     //Variables for Max Sizes, Track count and Track Height and a List of Elements of "TimelineTrack" aswell as the Position of the Scrollview
     public float maxTime = 100;
     public int trackCount => audiotrackmgr.audioTracks.Count;
-    public float trackHeight = 20;
+    public float trackHeight = 40;
     public Vector2 timelinePosition = new Vector2(0, 0);
 
     public Vector2 timelinePosition_Offset = new Vector2(0, 0);
@@ -338,9 +338,13 @@ public class TimelineView
     //Draw the Timeline
     public bool DrawTimeline(float widthTimeline, float xPos, ColorTextureManager colormgr, Event current)
     {
-
+        //create style for box
+        GUIStyle boxstylebg = new GUIStyle(GUI.skin.box);
+        boxstylebg.normal.background = colormgr.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_016, ColorRGBA.grayscale_032, 32);
+        GUI.Box(new Rect(xPos, 0, xPos + widthTimeline, 1000), "", boxstylebg);
 
         bool doRepaint = false;
+        bool doOverlay = false;
 
 
         //set grab element to -1 if mouse is up or position is out of bounds of widthTimeline and Xpos or height with a margin of 10
@@ -411,20 +415,16 @@ public class TimelineView
         {
 
             //if control is pressed move timetime to the left by setting the timeline position
-            if (current.control)
-            {
-                timelinePosition_Offset.x += 0.5f;
-                //maxTime * timelinezoom.x
-                timelinePosition_Offset.x =  (float) Mathf.Clamp(timelinePosition_Offset.x, -(maxTime * timelinezoom.x), (maxTime * timelinezoom.x));
-                doRepaint = true;
-            }
-
-            //if shift is pressed move timetime to the left by setting the timeline position
             if (current.alt)
             {
-                timelinePosition_Offset.x -= 0.5f;
-                //limit to - maxTime * timelinezoom.x
-                timelinePosition_Offset.x =  (float) Mathf.Clamp(timelinePosition_Offset.x, -(maxTime * timelinezoom.x), (maxTime * timelinezoom.x));
+
+                doOverlay = true;
+
+
+                timelinePosition_Offset.x += (xPos + (widthTimeline) / 2 - current.mousePosition.x) / 200f;
+                timelinePosition_Offset.y += ((500) / 2 - current.mousePosition.y) / 200f;
+                //maxTime * timelinezoom.x
+                timelinePosition_Offset.x = (float)Mathf.Clamp(timelinePosition_Offset.x, -(maxTime * timelinezoom.x), (maxTime * timelinezoom.x));
                 doRepaint = true;
             }
 
@@ -432,6 +432,7 @@ public class TimelineView
             if (current.shift)
             {
                 timelinePosition_Offset.x = 0;
+                timelinePosition_Offset.y = 0;
                 doRepaint = true;
             }
 
@@ -441,14 +442,11 @@ public class TimelineView
 
         //Draw gray background 
         //EditorGUI.DrawRect(new Rect(0, 0, maxTime*100, trackHeight * trackCount), GetRGBA(ColorRGBA.grayscale_016));
-        GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, 0, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 50)));
+        GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, timelinePosition_Offset.y, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 50)));
         //Draw the timeline
 
         //Draw Gradient Background
-        //create style for box
-        GUIStyle boxstylebg = new GUIStyle(GUI.skin.box);
-        boxstylebg.normal.background = colormgr.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_016, ColorRGBA.grayscale_032, 32);
-        GUI.Box(new Rect(0, 0, widthTimeline, 1000), "", boxstylebg);
+
 
         timelinePosition = GUILayout.BeginScrollView(timelinePosition, GUILayout.Width((int)(maxTime * 10) * timelinezoom.x), GUILayout.Height(200));
         GUILayout.BeginHorizontal(GUILayout.Width(maxTime * timelinezoom.x));
@@ -500,7 +498,7 @@ public class TimelineView
                     grabbedElement = i;
 
                     //set the mouse position and remove the offset relative to the box
-                    mousePositionX = current.mousePosition.x - _x;
+                    mousePositionX = current.mousePosition.x - _x + timelinePosition_Offset.x;
                     //use the event
                     doRepaint = true;
                 }
@@ -510,12 +508,63 @@ public class TimelineView
             {
                 GUI.Box(rect, "", boxstyle);
             }
+
+
+
+
+
+
+            //Draw the Waveform using the bit depth relatively and create a box
+            float resolution = 100*audiotrackmgr.audioTracks[i].clip.length * timelinezoom.x;
+            //get the max value that the bit depth can reach
+            float maxvalue = Mathf.Pow(2, audiotrackmgr.audioTracks[i]._targetBitDepth) - 1;
+            //iterate 100 Times 
+            for (float j = 0; j < resolution; j++)
+            {
+
+
+                float sampleValue = 0;
+                //Loo for channels
+                for (int ch = 0; ch < audiotrackmgr.audioTracks[i].audioData.Length; ch++)
+                {
+                    //getting the next closest starting byte of a sample using modulo
+                    int sampleIndex = (int)(audiotrackmgr.audioTracks[i].audioData[ch].Length * (j / resolution)) - (((int)(audiotrackmgr.audioTracks[i].audioData[ch].Length * (j / resolution))) % (audiotrackmgr.audioTracks[i]._targetBitDepth / 8));
+
+                    int samplebuffer = 0;
+
+                    //Loop through the bit depth
+                    for (int b = 0; b < audiotrackmgr.audioTracks[i]._targetBitDepth / 8; b++)
+                    {
+                        //Shift the bits to the left and add the next byte
+                        samplebuffer = samplebuffer << 8;
+                        samplebuffer += audiotrackmgr.audioTracks[i].audioData[ch][sampleIndex + b];
+                    }
+
+                    if (sampleValue < samplebuffer)
+                    {
+                        sampleValue = samplebuffer;
+                    }
+
+                }
+                //Draw the sample value
+                EditorGUI.DrawRect(new Rect(_x + ((j / resolution) * (_width/2)), _y + _height - ((sampleValue / (maxvalue)) * _height), (_width/2) / resolution, ((sampleValue / (maxvalue))) * _height), GetRGBA(ColorRGBA.red));
+                //Testrect
+                //EditorGUI.DrawRect(new Rect(_x , _y, _width, _height), GetRGBA(ColorRGBA.red));
+
+
+
+
+
+            }
+
+
             //Draw box with size and position of rect
 
             EditorGUI.LabelField(new Rect(_x, _y, 20, 12), audiotrackmgr.audioTracks[i].clip.name
             //Make color black and bold
             , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.black }, fontStyle = FontStyle.Bold, fontSize = 12 }
             );
+
         }
 
         //Draw a line for the timeline every 10 unitys
@@ -523,7 +572,7 @@ public class TimelineView
         {
 
             if (i % 10 == 0)
-                EditorGUI.LabelField(new Rect(trackHeightOffset + i * 10, 0, 12, 12), (i / 10).ToString());
+                EditorGUI.LabelField(new Rect(trackHeightOffset + i * 10, 0, 20, 12), (i / 10).ToString());
 
             //If this is the grabbed element draw a the Star and end Time
             if (grabbedElement == i)
@@ -540,10 +589,20 @@ public class TimelineView
         }
 
 
+
         GUILayout.EndHorizontal();
         GUILayout.EndScrollView();
 
         GUILayout.EndArea();
+
+
+        if (doOverlay)
+        {
+            //Draw 2 White Boxes to indicate the position
+            EditorGUI.DrawRect(new Rect( (widthTimeline) / 2 - 1, 0, 2, 900), GetRGBA(ColorRGBA.white));
+            EditorGUI.DrawRect(new Rect(0, (500) - 1, 900, 2), GetRGBA(ColorRGBA.white));
+        }
+
         return doRepaint;
     }
 
@@ -596,6 +655,9 @@ public class AudiotrackManager
 
     public void createMix(string filePath, string filename)
     {
+
+        //Load all audio data
+        reloadAudioData();
         byte[][] mixedData = MixAudioData();
         WriteWavFile(mixedData, filePath, filename, targetSampleRate, targetChannels, targetBitDepth);
     }
@@ -672,12 +734,34 @@ public class AudiotrackManager
 
             for (int i = 0; i < numBytes; i++)
             {
+                int product = 1;
                 for (int j = 0; j < numTracks; j++)
                 {
-                    mixedData[ch][i] += audiolines[ch][j][i];
+                    product *= audiolines[ch][j][i];
+                }
+                mixedData[ch][i] = (byte)product;
+            }
+        }
+
+        // Normalize the mixed data
+        for (int ch = 0; ch < numChannels; ch++)
+        {
+            byte originalMax = mixedData[ch].Max();
+            byte multipliedMax = mixedData[ch].Max();
+
+            for (int i = 0; i < numBytes; i++)
+            {
+                if (multipliedMax != 0)
+                {
+                    mixedData[ch][i] = (byte)(mixedData[ch][i] * originalMax / multipliedMax);
+                }
+                else
+                {
+                    mixedData[ch][i] = 0;
                 }
             }
         }
+
         //Debug
         Debug.Log("Mixed Data CH1: " + mixedData[0].Length);
         Debug.Log("Mixed Data CH2: " + mixedData[1].Length);
