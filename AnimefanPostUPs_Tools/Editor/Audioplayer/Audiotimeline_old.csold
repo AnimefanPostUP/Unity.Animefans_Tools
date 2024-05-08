@@ -437,77 +437,107 @@ public class AudioTrack
         return audioBytes;
     }
 
-
-    public byte[] readAudioBytes()
-    {
-        //Get clip absolute path
-        string path = AssetDatabase.GetAssetPath(clip);
-        string absolutePath = Path.GetFullPath(path);
-        return uncompressData(System.IO.File.ReadAllBytes(absolutePath));
-    }
-
     public byte[][] GetChannels()
     {
-        byte[] audioBytes = readAudioBytes();
+
+
+        //Get clip absolute path
+        string path = AssetDatabase.GetAssetPath(clip);
+        //absolute path
+        string absolutePath = Path.GetFullPath(path);
+
+
+        // Now you can read the uncompressed audio data from "temp.wav"
+        byte[] audioBytes = uncompressData(System.IO.File.ReadAllBytes(absolutePath));
 
         audioBytes = audioBytes.Skip(44).ToArray();
+
 
         Debug.Log("Read Source Bytes");
         ReportAudioData(audioBytes);
 
-        //Get Audiodata
-        int totalBytes = audioBytes.Length; // Subtract 44 to exclude the .wav header
+
+
+
+
+        //Debug Total Bytes
+        Debug.Log("Total Bytes: " + audioBytes.Length);
+
+        // Parse the .wav file header
+        //int channels = BitConverter.ToInt16(audioBytes, 22);
+        //int bitDepth = BitConverter.ToInt16(audioBytes, 34);
+        //Use unity to get the data
+
+        int totalBytes = audioBytes.Length - 44; // Subtract 44 to exclude the .wav header
+        int sampleRate = clip.frequency;
+        int channels = clip.channels;
         float durationInSeconds = clip.length;
+
+        Debug.Log("channels " + channels);
+
+        Debug.Log("sampleRate: " + sampleRate);
+
         Debug.Log("durationInSeconds: " + durationInSeconds);
 
-        //Read Header
-        Dictionary<string, int> header = ReadWavHeader(absolutePath);
 
-        int sampleRate = header["SampleRate"];
-        int bitDepth = header["BitsPerSample"];
-        int channels = header["Channels"];
-        int bytesPerSample = bitDepth / 8;
-
-        //Abort if 0
-        if (sampleRate == 0 || bitDepth == 0 || channels == 0)
+        //correct counts if 0
+        if (sampleRate == 0)
         {
-            Debug.LogError("Invalid audio data");
-            return null;
+            sampleRate = 44100;
         }
 
-        //Store for Later Processing
+        if (channels == 0)
+        {
+            channels = 2;
+        }
+
+        int bitDepth = ReadWavHeader(absolutePath);
+        Debug.Log("Bits Per Sample: " + bitDepth);
+
+        int bytesPerSample = (int)bitDepth / 8;
+        Debug.Log("Bytes Depth: " + bytesPerSample);
+
+        //Auto adjust the the next closes by using floats and rounding
+
+        //Store
         _oldSampleRate = sampleRate;
         _oldChannels = channels;
         _oldBitDepth = bitDepth;
         _length = clip.length;
 
-        //Validate Samplecount
-        int validateSamplecount = ((audioBytes.Length) / (bytesPerSample)/channels);
-        if (validateSamplecount !=  sampleRate  * durationInSeconds)
-        {
-            //Try if Channelcount was wrong
-            channels = 1;
-            validateSamplecount = ((audioBytes.Length) / (bytesPerSample) / channels);
-            if (validateSamplecount != sampleRate * durationInSeconds)
-            {
-                Debug.LogError("Invalid Sample Count");
-                return null;
-            }
-        }
+        // Calculate the total number of samples
+        int totalSamples = ((audioBytes.Length) / (bytesPerSample));
+        Debug.Log("Total Samples: " + totalSamples);
 
         // Create a jagged array to hold the audio data for each channel
         byte[][] channelData = new byte[channels][];
 
-        // Separate the audio data for each channel by copying every n-th byte, where n is the number of channels
         for (int i = 0; i < channels; i++)
         {
-            channelData[i] = new byte[totalBytes / channels];
-            for (int j = 0; j < channelData[i].Length; j++)
+            channelData[i] = new byte[totalSamples * bytesPerSample];
+        }
+
+        // Separate the audio data into channels
+        for (int i = 0, j = 0; i < audioBytes.Length && j < totalSamples; i += bytesPerSample * channels, j++)
+        {
+            for (int channel = 0; channel < channels; channel++)
             {
-                channelData[i][j] = audioBytes[j * channels + i];
+                int sourceIndex = i + bytesPerSample * channel;
+                if (sourceIndex + bytesPerSample <= audioBytes.Length)
+                {
+                    Array.Copy(audioBytes, sourceIndex, channelData[channel], j * bytesPerSample, bytesPerSample);
+                }
             }
         }
 
+        // If the audio is mono, duplicate the single channel to create a stereo effect
+        if (channels == 1)
+        {
+            if (channelData[0].Length <= channelData[1].Length)
+            {
+                Array.Copy(channelData[0], channelData[1], channelData[0].Length);
+            }
+        }
         Debug.Log("Separated");
         ReportAudioData(channelData[0]);
         ReportAudioData(channelData[1]);
@@ -587,7 +617,7 @@ public class AudioTrack
         return resampledBytes;
     }
 
-    public Dictionary<string,int> ReadWavHeader(string filePath)
+    public int ReadWavHeader(string filePath)
     {
         using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
         using (var reader = new BinaryReader(fileStream))
@@ -633,18 +663,7 @@ public class AudioTrack
 
             Debug.Log($"Channels: {numChannels}, Sample Rate: {sampleRate}, Bits Per Sample: {bitsPerSample}");
 
-            //Create return dict
-            Dictionary<string, int> header = new Dictionary<string, int>();
-
-            header.Add("Channels", numChannels);
-            header.Add("SampleRate", sampleRate);
-            header.Add("BitsPerSample", bitsPerSample);
-
-
-
-
-
-            return header;
+            return bitsPerSample;
         }
     }
 

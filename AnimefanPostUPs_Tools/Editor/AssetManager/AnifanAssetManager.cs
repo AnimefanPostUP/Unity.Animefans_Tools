@@ -22,7 +22,7 @@ using AnifansAssetManager.ColorTextureItem;
 
 public class AnifanAssetManager : EditorWindow
 {
-    const string CacheFolder = "Assets/AnimefansAssetManager/Editor/Textures_Internal/";
+    const string CacheFolder = "Assets/AnimefanPostUPs-Tools/AnimefanPostUPs_Tools/Editor/Textures_Internal/";
 
     //INTERNAL
     private string filterString = "";
