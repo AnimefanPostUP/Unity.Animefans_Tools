@@ -14,19 +14,37 @@ using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 
+//import colors and guilayouts from AnimefanPostUPs-Tools
+using AnimefanPostUPs_Tools.SmartColorUtility;
+using AnimefanPostUPs_Tools.ColorTextureItem;
+using AnimefanPostUPs_Tools.ColorTextureManager;
+using AnimefanPostUPs_Tools.GUI_LayoutElements;
+//get Texturetypes
+using static AnimefanPostUPs_Tools.ColorTextureItem.TexItemType;
+
 
 public class Audiotimeline : EditorWindow
 {
-
+    private static Color GetRGBA(ColorRGBA color)
+    {
+        return SmartColorUtility.GetRGBA(color);
+    }
     //clip slot
-
+    const string CacheFolder = "Assets/AnimefanPostUPs-Tools/AnimefanPostUPs_Tools/Editor/Textures_Internal/";
     public AudioClip audioClip;
 
     public string filename = "Mix";
     public string targetfolder = "Assets/AnimTools/";
 
+    //Create color mgr
+    private ColorTextureManager colorTextureManager = new ColorTextureManager();
+    private TimelineView timelineView;
+
     //Audio Manager
     private AudiotrackManager audioManager;
+
+    //Create Split
+    public Splitviewer splitviewer = new Splitviewer();
 
     //Create window
     [MenuItem("Animtools/Audio Timeline")]
@@ -39,11 +57,14 @@ public class Audiotimeline : EditorWindow
     private void OnEnable()
     {
         init_audiomanager();
+        //Init color texture manager
+        colorTextureManager.CacheFolder = CacheFolder;
     }
 
     void init_audiomanager()
     {
         audioManager = new AudiotrackManager();
+        timelineView = new TimelineView(100, 20, audioManager);
     }
 
     //on disable
@@ -57,37 +78,72 @@ public class Audiotimeline : EditorWindow
 
     private void OnGUI()
     {
-        DrawTimeline();
+
+        //Check if even is control and scrollwheel
+        if (Event.current.type == EventType.ScrollWheel && Event.current.control)
+        {
+            timelineView.timelinezoom.x -= (Event.current.delta.y * 4);
+
+            //Clamp value between 1 and 1000
+            timelineView.timelinezoom.x = Mathf.Clamp(timelineView.timelinezoom.x, 1, 1000);
+
+            //use Event
+            Event.current.Use();
+            Repaint();
+        }
+
+        GUILayout.BeginHorizontal();
+        GUILayout.BeginVertical(GUILayout.Width(splitviewer.splitPosition));
+        
+        GUILayout.EndVertical();
+
+        if (splitviewer.drawSplit(Event.current, position)) Repaint();
+
+        DrawTimelineUI(position.width - splitviewer.splitPosition);
+        GUILayout.EndHorizontal();
+
+        DrawSidePanel(splitviewer.splitPosition);
+    }
+
+    public void DrawTimelineUI(float widthTimeline)
+    {
+        //Get the current Animation Window if it exists
+
+        GUILayout.BeginHorizontal(GUILayout.Width(widthTimeline));
+        if (timelineView.DrawTimeline(widthTimeline, splitviewer.splitPosition, colorTextureManager, Event.current)) Repaint();
+        GUILayout.EndHorizontal();
+
     }
 
     Vector2 scrollPos;
 
-    private void DrawTimeline()
+    private void DrawSidePanel(float widthSidePanel)
     {
         GUILayout.BeginVertical();
         //Scrollview vertical
-        GUILayout.BeginScrollView(scrollPos, GUILayout.Width(200));
+        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(widthSidePanel));
+        EditorGUI.DrawRect(new Rect(0, 0, widthSidePanel, position.height), GetRGBA(ColorRGBA.grayscale_064));
 
+        int halfWidth = (int)(widthSidePanel / 2);
 
         //Create button style
         GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-        buttonStyle.fixedWidth = 30;
+        buttonStyle.fixedWidth = widthSidePanel / 2 - 10;
         buttonStyle.fixedHeight = 25;
 
         //Create button style
         GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.button);
-        buttonStyle.fixedWidth = 60;
+        buttonStyle.fixedWidth = widthSidePanel / 3 - 10;
         buttonStyle.fixedHeight = 25;
 
-
-
-
-
-        audioClip = EditorGUILayout.ObjectField("Audio Clip", audioClip, typeof(AudioClip), false) as AudioClip;
+        audioClip = EditorGUILayout.ObjectField("", audioClip, typeof(AudioClip), false, GUILayout.Width(100)) as AudioClip;
         //Call//Unity field for folder
+
+
+
         GUILayout.BeginHorizontal();
-        targetfolder = EditorGUILayout.TextField("Target Folder", targetfolder);
-        if (GUILayout.Button("Select"))
+        targetfolder = EditorGUILayout.TextField("", targetfolder, GUILayout.Width(halfWidth / 2));
+        if (GUILayout.Button("Select", GUILayout.Width(halfWidth)))
         {
             targetfolder = EditorUtility.OpenFolderPanel("Select Folder", targetfolder, "");
         }
@@ -141,14 +197,18 @@ public class Audiotimeline : EditorWindow
         CreateBitDepthButton("64");
         GUILayout.EndHorizontal();
 
-        GUILayout.Label("Channels: " + audioManager.targetChannels);
-        GUILayout.BeginHorizontal();
+        //Debug timeline variabled ALL
+        Debug.Log("Timeline: " + timelineView.maxTime + " Tracks: " + audioManager.audioTracks.Count + " Track Height: " + timelineView.trackHeight + " Position: " + timelineView.timelinePosition + " Zoom: " + timelineView.timelinezoom);
+
+        GUILayout.Label("Channelcount: " + audioManager.targetChannels, GUILayout.Width(halfWidth));
+
+        GUILayout.BeginHorizontal(GUILayout.Width(halfWidth));
         //Create 2 Toggling buttons for 1 or 2 channels
-        if (GUILayout.Button("1",buttonStyle2))
+        if (GUILayout.Button("1", buttonStyle2))
         {
             audioManager.targetChannels = 1;
         }
-        if (GUILayout.Button("2",buttonStyle2))
+        if (GUILayout.Button("2", buttonStyle2))
         {
             audioManager.targetChannels = 2;
         }
@@ -157,10 +217,9 @@ public class Audiotimeline : EditorWindow
 
 
 
-        GUILayout.BeginHorizontal();
-
+        GUILayout.BeginHorizontal(GUILayout.Width(50));
         //Focus the folder
-        if (GUILayout.Button("Focus Folder",buttonStyle2))
+        if (GUILayout.Button("Focus Folder", buttonStyle2))
         {
             //Focus in project window
             //Get relative path
@@ -168,7 +227,7 @@ public class Audiotimeline : EditorWindow
             EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
         }
         //Create File
-        if (GUILayout.Button("Create Mix",buttonStyle2))
+        if (GUILayout.Button("Create Mix", buttonStyle2))
         {
             audioManager.createMix(targetfolder, filename + ".wav");
         }
@@ -181,7 +240,11 @@ public class Audiotimeline : EditorWindow
             audioManager.addAudioTrack(newAudioTrack);
             audioClip = null;
         }
+        GUILayout.BeginHorizontal(GUILayout.Width(50));
 
+
+        //Vertical
+        GUILayout.BeginVertical();
         //loop through all audio tracks
         foreach (var track in audioManager.audioTracks)
         {
@@ -194,7 +257,7 @@ public class Audiotimeline : EditorWindow
             //Inputfield for init time
 
             int oldinitTime = (int)track.initTime;
-            track.initTime = EditorGUILayout.FloatField("Start Time", track.initTime, GUILayout.Width(50));
+            track.initTime = EditorGUILayout.FloatField("", track.initTime, GUILayout.Width(25));
 
             //reload the audio data if the init time has changed
             if (oldinitTime != (int)track.initTime)
@@ -203,19 +266,31 @@ public class Audiotimeline : EditorWindow
             }
 
             //button to remove track
-            if (GUILayout.Button("Remove",buttonStyle2))
+            if (GUILayout.Button("X", GUILayout.Width(widthSidePanel / 12)))
             {
                 audioManager.removeAudioTrack(track);
             }
 
             //button to load audio data
-            if (GUILayout.Button("Load Audio Data", buttonStyle2))
+            if (GUILayout.Button("Reload", GUILayout.Width(widthSidePanel / 4)))
             {
                 track.LoadAudioData();
             }
 
+            //button to load audio data
+            if (GUILayout.Button("Clamp", GUILayout.Width(widthSidePanel / 4)))
+            {
+                //set Track inittime to 0
+                track.initTime = 0;
+            }
+
             GUILayout.EndHorizontal();
         }
+
+        GUILayout.EndVertical();
+
+
+        GUILayout.EndHorizontal();
 
 
         //End Scrollview
@@ -226,6 +301,254 @@ public class Audiotimeline : EditorWindow
 
 }
 
+//Class to manage and draw a timeline
+public class TimelineView
+{
+
+    //Variables for Max Sizes, Track count and Track Height and a List of Elements of "TimelineTrack" aswell as the Position of the Scrollview
+    public float maxTime = 100;
+    public int trackCount => audiotrackmgr.audioTracks.Count;
+    public float trackHeight = 20;
+    public Vector2 timelinePosition = new Vector2(0, 0);
+
+    public Vector2 timelinePosition_Offset = new Vector2(0, 0);
+    public Vector2 timelinezoom = new Vector2(100, 100);
+
+    public int grabbedElement = -1;
+
+    public float mousePositionX = 0;
+
+    public float trackHeightOffset = 20;
+
+    AudiotrackManager audiotrackmgr;
+
+    private static Color GetRGBA(ColorRGBA color)
+    {
+        return SmartColorUtility.GetRGBA(color);
+    }
+
+    //Constructor
+    public TimelineView(float maxTime, float trackHeight, AudiotrackManager audiotrackmgr)
+    {
+        this.maxTime = maxTime;
+        this.trackHeight = trackHeight;
+        this.audiotrackmgr = audiotrackmgr;
+    }
+
+    //Draw the Timeline
+    public bool DrawTimeline(float widthTimeline, float xPos, ColorTextureManager colormgr, Event current)
+    {
+
+
+        bool doRepaint = false;
+
+
+        //set grab element to -1 if mouse is up or position is out of bounds of widthTimeline and Xpos or height with a margin of 10
+        if (current.type == EventType.MouseUp || current.mousePosition.x < xPos || current.mousePosition.x > xPos + widthTimeline || current.mousePosition.y < 0 || current.mousePosition.y > trackHeight * (trackCount + 10))
+        {
+            grabbedElement = -1;
+        }
+        else
+        {
+
+            //Check if its a File Drop Event
+            if (current.type == EventType.DragUpdated || current.type == EventType.DragPerform)
+            {
+                DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
+
+                //Draw lightlightbox to display a Drop Position
+                EditorGUI.DrawRect(new Rect(current.mousePosition.x - 10, current.mousePosition.y - 10, 20, 20), GetRGBA(ColorRGBA.grayscale_144));
+
+                if (current.type == EventType.DragPerform)
+                {
+                    DragAndDrop.AcceptDrag();
+
+                    foreach (var draggedObject in DragAndDrop.objectReferences)
+                    {
+                        if (draggedObject is AudioClip)
+                        {
+                            //check if file is .wav
+                            if (Path.GetExtension(AssetDatabase.GetAssetPath(draggedObject)) == ".wav")
+                            {
+                                AudioTrack newAudioTrack = new AudioTrack(draggedObject as AudioClip);
+                                audiotrackmgr.addAudioTrack(newAudioTrack);
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        //if theres a grabbed element then move it to the current mouse position
+        if (grabbedElement != -1)
+        {
+
+            //if control i pressed limit the movement to 10 unitys
+            if (current.control)
+            {
+
+
+                audiotrackmgr.audioTracks[grabbedElement].initTime = ((current.mousePosition.x - mousePositionX - xPos) - ((current.mousePosition.x - mousePositionX - xPos) % 10f)) / timelinezoom.x;
+            }
+            else if (current.shift)
+            {
+
+                audiotrackmgr.audioTracks[grabbedElement].initTime = ((current.mousePosition.x - mousePositionX - xPos) - ((((audiotrackmgr.audioTracks[grabbedElement].clip.length * 100) % 10) + current.mousePosition.x - mousePositionX - xPos) % 10f)) / timelinezoom.x;
+            }
+            else if (current.alt)
+            {
+                //no function yet
+            }
+            else
+            {
+                audiotrackmgr.audioTracks[grabbedElement].initTime = (current.mousePosition.x - mousePositionX - xPos) / timelinezoom.x;
+            }
+            audiotrackmgr.audioTracks[grabbedElement].LoadAudioData();
+            doRepaint = true;
+        }
+        else
+        {
+
+            //if control is pressed move timetime to the left by setting the timeline position
+            if (current.control)
+            {
+                timelinePosition_Offset.x += 0.5f;
+                //maxTime * timelinezoom.x
+                timelinePosition_Offset.x =  (float) Mathf.Clamp(timelinePosition_Offset.x, -(maxTime * timelinezoom.x), (maxTime * timelinezoom.x));
+                doRepaint = true;
+            }
+
+            //if shift is pressed move timetime to the left by setting the timeline position
+            if (current.alt)
+            {
+                timelinePosition_Offset.x -= 0.5f;
+                //limit to - maxTime * timelinezoom.x
+                timelinePosition_Offset.x =  (float) Mathf.Clamp(timelinePosition_Offset.x, -(maxTime * timelinezoom.x), (maxTime * timelinezoom.x));
+                doRepaint = true;
+            }
+
+            //reset if shift
+            if (current.shift)
+            {
+                timelinePosition_Offset.x = 0;
+                doRepaint = true;
+            }
+
+
+        }
+
+
+        //Draw gray background 
+        //EditorGUI.DrawRect(new Rect(0, 0, maxTime*100, trackHeight * trackCount), GetRGBA(ColorRGBA.grayscale_016));
+        GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, 0, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 50)));
+        //Draw the timeline
+
+        //Draw Gradient Background
+        //create style for box
+        GUIStyle boxstylebg = new GUIStyle(GUI.skin.box);
+        boxstylebg.normal.background = colormgr.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_016, ColorRGBA.grayscale_032, 32);
+        GUI.Box(new Rect(0, 0, widthTimeline, 1000), "", boxstylebg);
+
+        timelinePosition = GUILayout.BeginScrollView(timelinePosition, GUILayout.Width((int)(maxTime * 10) * timelinezoom.x), GUILayout.Height(200));
+        GUILayout.BeginHorizontal(GUILayout.Width(maxTime * timelinezoom.x));
+
+        GUIStyle boxstyle = new GUIStyle(GUI.skin.box);
+        boxstyle.normal.background = colormgr.LoadTexture(TexItemType.Gradient_Horizontal, ColorRGBA.yellow, ColorRGBA.orange, 32);
+
+        //Draw a line for the timeline every 10 unitys
+        for (int i = 0; i < maxTime; i++)
+        {
+
+            if (i % 10 == 0)
+            {
+                //Draw Label with time
+                EditorGUI.DrawRect(new Rect(i * timelinezoom.x / 10, 0, 1, (40) * trackCount), GetRGBA(ColorRGBA.red));
+            }
+            else
+                EditorGUI.DrawRect(new Rect(i * timelinezoom.x / 10, 0, 3, (40) * trackCount), GetRGBA(ColorRGBA.grayscale_048));
+        }
+
+        //draw boxes for tracks
+        foreach (int i in Enumerable.Range(0, audiotrackmgr.audioTracks.Count))
+        {
+            //Create style with horizontal gradient
+
+            //continue if position x is below 0
+
+
+            float _x = audiotrackmgr.audioTracks[i].initTime * timelinezoom.x;
+            float _y = trackHeightOffset + i * (trackHeight + 10);
+            float _width = audiotrackmgr.audioTracks[i].clip.length * timelinezoom.x;
+            float _height = trackHeight;
+
+            boxstyle.fixedWidth = _width;
+            boxstyle.fixedHeight = _height;
+
+            //Rect for the box
+            Rect rect = new Rect(_x, _y, _width, _height);
+
+            //check if mouse is over the box
+            if (rect.Contains(Event.current.mousePosition))
+            {
+                EditorGUI.DrawRect(rect, GetRGBA(ColorRGBA.grayscale_144));
+                doRepaint = true;
+                //if mousedown
+                if (current.type == EventType.MouseDown)
+                {
+                    //set the grabbed element to the current element
+                    grabbedElement = i;
+
+                    //set the mouse position and remove the offset relative to the box
+                    mousePositionX = current.mousePosition.x - _x;
+                    //use the event
+                    doRepaint = true;
+                }
+
+            }
+            else
+            {
+                GUI.Box(rect, "", boxstyle);
+            }
+            //Draw box with size and position of rect
+
+            EditorGUI.LabelField(new Rect(_x, _y, 20, 12), audiotrackmgr.audioTracks[i].clip.name
+            //Make color black and bold
+            , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.black }, fontStyle = FontStyle.Bold, fontSize = 12 }
+            );
+        }
+
+        //Draw a line for the timeline every 10 unitys
+        for (int i = 0; i < maxTime; i++)
+        {
+
+            if (i % 10 == 0)
+                EditorGUI.LabelField(new Rect(trackHeightOffset + i * 10, 0, 12, 12), (i / 10).ToString());
+
+            //If this is the grabbed element draw a the Star and end Time
+            if (grabbedElement == i)
+            {
+                //Draw Box behind the label
+                EditorGUI.DrawRect(new Rect(audiotrackmgr.audioTracks[i].initTime * 100, i * (trackHeight + 10) + 40, trackHeightOffset + audiotrackmgr.audioTracks[i].clip.length * 100, 30), GetRGBA(ColorRGBA.grayscale_064));
+
+                EditorGUI.LabelField(new Rect(audiotrackmgr.audioTracks[i].initTime * 100, trackHeightOffset + i * (trackHeight + 10) + 30, 100, 12), audiotrackmgr.audioTracks[i].initTime.ToString());
+                EditorGUI.LabelField(new Rect(audiotrackmgr.audioTracks[i].initTime * 100 + (audiotrackmgr.audioTracks[i].clip.length / 2) * 100, trackHeightOffset + i * (trackHeight + 10) + 30, 100, 12), (audiotrackmgr.audioTracks[i].initTime + audiotrackmgr.audioTracks[i].clip.length).ToString());
+            }
+
+
+
+        }
+
+
+        GUILayout.EndHorizontal();
+        GUILayout.EndScrollView();
+
+        GUILayout.EndArea();
+        return doRepaint;
+    }
+
+
+}
 
 
 public class AudiotrackManager
