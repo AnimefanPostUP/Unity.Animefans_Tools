@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 344f7b477a8ae4c4fabfafe118dc713e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - m_ViewDataDictionary: {instanceID: 0}
+  - audioClip_a: {instanceID: 0}
+  - audioClip_b: {instanceID: 0}
+  - audioClip_c: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
