@@ -1,10 +1,10 @@
-namespace AnifansAssetManager.KeyActionGroup
+namespace AnimefanPostUPs_Tools.KeyActionGroup
 {
 
     using System;
     using System.Collections.Generic;
-    using AnifansAssetManager.KeyMonitorGroup;
-    using AnifansAssetManager.KeyAction;
+    using AnimefanPostUPs_Tools.KeyMonitorGroup;
+    using AnimefanPostUPs_Tools.KeyAction;
 
 
     //Class to Manage multiple KeyActions, their Execution and their Priority

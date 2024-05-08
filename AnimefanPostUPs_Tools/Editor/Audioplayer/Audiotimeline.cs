@@ -60,8 +60,29 @@ public class Audiotimeline : EditorWindow
         DrawTimeline();
     }
 
+    Vector2 scrollPos;
+
     private void DrawTimeline()
     {
+        GUILayout.BeginVertical();
+        //Scrollview vertical
+        GUILayout.BeginScrollView(scrollPos, GUILayout.Width(200));
+
+
+        //Create button style
+        GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
+        buttonStyle.fixedWidth = 30;
+        buttonStyle.fixedHeight = 25;
+
+        //Create button style
+        GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.button);
+        buttonStyle.fixedWidth = 60;
+        buttonStyle.fixedHeight = 25;
+
+
+
+
+
         audioClip = EditorGUILayout.ObjectField("Audio Clip", audioClip, typeof(AudioClip), false) as AudioClip;
         //Call//Unity field for folder
         GUILayout.BeginHorizontal();
@@ -76,7 +97,7 @@ public class Audiotimeline : EditorWindow
         //function for buttons setting sample rate
         void CreateSampleRateButtons(string sampleRate)
         {
-            if (GUILayout.Button(sampleRate))
+            if (GUILayout.Button(sampleRate, buttonStyle))
             {
                 audioManager.targetSampleRate = int.Parse(sampleRate);
                 audioManager.reloadAudioData();
@@ -86,7 +107,7 @@ public class Audiotimeline : EditorWindow
         //Create the function
         void CreateBitDepthButton(string bitDepth)
         {
-            if (GUILayout.Button(bitDepth))
+            if (GUILayout.Button(bitDepth, buttonStyle))
             {
                 audioManager.targetBitDepth = int.Parse(bitDepth);
                 audioManager.reloadAudioData();
@@ -123,11 +144,11 @@ public class Audiotimeline : EditorWindow
         GUILayout.Label("Channels: " + audioManager.targetChannels);
         GUILayout.BeginHorizontal();
         //Create 2 Toggling buttons for 1 or 2 channels
-        if (GUILayout.Button("1"))
+        if (GUILayout.Button("1",buttonStyle2))
         {
             audioManager.targetChannels = 1;
         }
-        if (GUILayout.Button("2"))
+        if (GUILayout.Button("2",buttonStyle2))
         {
             audioManager.targetChannels = 2;
         }
@@ -136,16 +157,23 @@ public class Audiotimeline : EditorWindow
 
 
 
+        GUILayout.BeginHorizontal();
 
         //Focus the folder
-        if (GUILayout.Button("Focus Folder"))
+        if (GUILayout.Button("Focus Folder",buttonStyle2))
         {
             //Focus in project window
             //Get relative path
             string relativepath = targetfolder.Replace(Application.dataPath, "Assets");
             EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
         }
+        //Create File
+        if (GUILayout.Button("Create Mix",buttonStyle2))
+        {
+            audioManager.createMix(targetfolder, filename + ".wav");
+        }
 
+        GUILayout.EndHorizontal();
 
         if (audioClip != null)
         {
@@ -166,7 +194,7 @@ public class Audiotimeline : EditorWindow
             //Inputfield for init time
 
             int oldinitTime = (int)track.initTime;
-            track.initTime = EditorGUILayout.FloatField("Start Time", track.initTime);
+            track.initTime = EditorGUILayout.FloatField("Start Time", track.initTime, GUILayout.Width(50));
 
             //reload the audio data if the init time has changed
             if (oldinitTime != (int)track.initTime)
@@ -175,25 +203,27 @@ public class Audiotimeline : EditorWindow
             }
 
             //button to remove track
-            if (GUILayout.Button("Remove"))
+            if (GUILayout.Button("Remove",buttonStyle2))
             {
                 audioManager.removeAudioTrack(track);
             }
 
             //button to load audio data
-            if (GUILayout.Button("Load Audio Data"))
+            if (GUILayout.Button("Load Audio Data", buttonStyle2))
             {
                 track.LoadAudioData();
             }
 
             GUILayout.EndHorizontal();
         }
-        //Create File
-        if (GUILayout.Button("Create Mix"))
-        {
-            audioManager.createMix(targetfolder, filename + ".wav");
-        }
+
+
+        //End Scrollview
+        GUILayout.EndScrollView();
+        GUILayout.EndVertical();
     }
+
+
 }
 
 

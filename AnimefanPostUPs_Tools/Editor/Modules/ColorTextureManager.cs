@@ -1,4 +1,4 @@
-namespace AnifansAssetManager.ColorTextureManager
+namespace AnimefanPostUPs_Tools.ColorTextureManager
 {
 
     using System.Collections.Generic;
@@ -6,9 +6,9 @@ namespace AnifansAssetManager.ColorTextureManager
     using UnityEditor;
     using System.Linq;
     using System.IO;
-    using AnifansAssetManager.ColorTextureItem;
-    using AnifansAssetManager.SmartColorUtility;
-    using static AnifansAssetManager.SmartColorUtility.ColorRGBA;
+    using AnimefanPostUPs_Tools.ColorTextureItem;
+    using AnimefanPostUPs_Tools.SmartColorUtility;
+    using static AnimefanPostUPs_Tools.SmartColorUtility.ColorRGBA;
     using System;
 
 

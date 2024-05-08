@@ -1,5 +1,5 @@
 //Define NameSpace
-namespace AnifansAssetManager.SmartColorUtility
+namespace AnimefanPostUPs_Tools.SmartColorUtility
 {
     using System;
     using UnityEngine;

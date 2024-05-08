@@ -1,12 +1,12 @@
 
 //For Creating and Managing KeyMonitors
 
-namespace AnifansAssetManager.KeyMonitorGroup
+namespace AnimefanPostUPs_Tools.KeyMonitorGroup
 {
 
     using System;
     using System.Collections.Generic;
-    using AnifansAssetManager.KeyMonitor;
+    using AnimefanPostUPs_Tools.KeyMonitor;
     using UnityEngine;
 
 

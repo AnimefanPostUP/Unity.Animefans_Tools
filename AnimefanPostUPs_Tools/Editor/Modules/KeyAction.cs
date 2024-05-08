@@ -1,11 +1,11 @@
 //Create Namespace
-namespace AnifansAssetManager.KeyAction
+namespace AnimefanPostUPs_Tools.KeyAction
 {
 
     using System;
     using System.Collections.Generic;
-    using AnifansAssetManager.KeyMonitorGroup;
-    using AnifansAssetManager.KeyActionGroup;
+    using AnimefanPostUPs_Tools.KeyMonitorGroup;
+    using AnimefanPostUPs_Tools.KeyActionGroup;
     //Class to Manage Keybinds, Keys, and Actions that are Bind to them
     public class KeyAction
     {

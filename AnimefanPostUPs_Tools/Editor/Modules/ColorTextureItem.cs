@@ -1,13 +1,13 @@
-namespace AnifansAssetManager.ColorTextureItem
+namespace AnimefanPostUPs_Tools.ColorTextureItem
 {
     using System.Collections.Generic;
     using UnityEngine;
     using UnityEditor;
     using System.Linq;
     using System.IO;
-    using AnifansAssetManager.ColorTextureManager;
-    using AnifansAssetManager.SmartColorUtility;
-    using static AnifansAssetManager.SmartColorUtility.ColorRGBA;
+    using AnimefanPostUPs_Tools.ColorTextureManager;
+    using AnimefanPostUPs_Tools.SmartColorUtility;
+    using static AnimefanPostUPs_Tools.SmartColorUtility.ColorRGBA;
 
     public enum TexItemType { Solid, Gradient_Horizontal, Gradient_Vertical, Grid }
     public class ColorTextureItem

@@ -1,10 +1,10 @@
 //Class for Monitoring a Specific Key
 
-namespace AnifansAssetManager.KeyMonitor
+namespace AnimefanPostUPs_Tools.KeyMonitor
 {
     using System.Collections.Generic;
     using UnityEngine;
-    using AnifansAssetManager.KeyMonitorGroup;
+    using AnimefanPostUPs_Tools.KeyMonitorGroup;
 
     public class KeyMonitor
     {

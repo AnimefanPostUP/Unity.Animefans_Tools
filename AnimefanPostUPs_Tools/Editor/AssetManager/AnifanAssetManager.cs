@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
-using AnifansAssetManager.KeyMonitorGroup;
-using AnifansAssetManager.KeyActionGroup;
+using AnimefanPostUPs_Tools.KeyMonitorGroup;
+using AnimefanPostUPs_Tools.KeyActionGroup;
 using AnifansAssetManager.FolderInfo;
 using AnifansAssetManager.FileInfo;
-using AnifansAssetManager.ColorTextureManager;
-using AnifansAssetManager.SmartColorUtility;
-using AnifansAssetManager.ColorTextureItem;
+using AnimefanPostUPs_Tools.ColorTextureManager;
+using AnimefanPostUPs_Tools.SmartColorUtility;
+using AnimefanPostUPs_Tools.ColorTextureItem;
 
 
 
