@@ -19,3 +19,5 @@ Hide and Show Icons
 -Fixed Scrolling
 -Better Caching of Preview Images
 -Adjustable Preview Size for Performance
+
+![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/37dc173d-6881-47fe-92fb-0f7c9f0f0bea)
