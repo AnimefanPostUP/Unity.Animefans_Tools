@@ -73,7 +73,25 @@ public class Audiotimeline : EditorWindow
     }
 
 
+    public enum SampleRate
+    {
+        _8000 = 8000,
+        _16000 = 16000,
+        _32000 = 32000,
+        _44100 = 44100,
+        _48000 = 48000,
+        _96000 = 96000
+    }
 
+    public enum BitDepth
+    {
+        _8 = 8,
+        _16 = 16,
+        _24 = 24,
+        _32 = 32,
+        _48 = 48,
+        _64 = 64
+    }
 
 
     private void OnGUI()
@@ -110,7 +128,7 @@ public class Audiotimeline : EditorWindow
         //Get the current Animation Window if it exists
 
         GUILayout.BeginHorizontal(GUILayout.Width(widthTimeline));
-        if (timelineView.DrawTimeline(widthTimeline, splitviewer.splitPosition, colorTextureManager, Event.current)) Repaint();
+        if (timelineView.DrawTimeline(audioManager, widthTimeline, splitviewer.splitPosition, colorTextureManager, Event.current, targetfolder, filename)) Repaint();
         GUILayout.EndHorizontal();
 
     }
@@ -121,81 +139,75 @@ public class Audiotimeline : EditorWindow
     {
         GUILayout.BeginVertical();
         //Scrollview vertical
+
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(widthSidePanel));
         EditorGUI.DrawRect(new Rect(0, 0, widthSidePanel, position.height), GetRGBA(ColorRGBA.grayscale_064));
 
-        int halfWidth = (int)(widthSidePanel / 2);
+        int halfWidth = (int)(widthSidePanel - 20);
 
         //Create button style
         GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-        buttonStyle.fixedWidth = widthSidePanel / 2 - 10;
+        buttonStyle.fixedWidth = widthSidePanel - 10;
         buttonStyle.fixedHeight = 25;
 
         //Create button style
         GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.button);
-        buttonStyle.fixedWidth = widthSidePanel / 3 - 10;
+        buttonStyle.fixedWidth = widthSidePanel - 10;
         buttonStyle.fixedHeight = 25;
 
         audioClip = EditorGUILayout.ObjectField("", audioClip, typeof(AudioClip), false, GUILayout.Width(100)) as AudioClip;
         //Call//Unity field for folder
 
+        //Buttons to toggle bool variable in audiomanager
+        if (GUILayout.Button("Auto Update Mix", GUILayout.Width(130)))
+        {
+            audioManager.autobuild = !audioManager.autobuild;
+        }
+
+        //Field to Set the Name
+        //label
+        GUILayout.Label("Filename:", GUILayout.Width(halfWidth));
+        filename = EditorGUILayout.TextField("", filename, GUILayout.Width(halfWidth));
 
 
-        GUILayout.BeginHorizontal();
-        targetfolder = EditorGUILayout.TextField("", targetfolder, GUILayout.Width(halfWidth / 2));
+
+
+        targetfolder = EditorGUILayout.TextField("", targetfolder, GUILayout.Width(halfWidth));
         if (GUILayout.Button("Select", GUILayout.Width(halfWidth)))
         {
             targetfolder = EditorUtility.OpenFolderPanel("Select Folder", targetfolder, "");
         }
-        GUILayout.EndHorizontal();
 
 
-        //function for buttons setting sample rate
-        void CreateSampleRateButtons(string sampleRate)
+
+        void CreateEnumButton<T>(T enumValue) where T : Enum
         {
-            if (GUILayout.Button(sampleRate, buttonStyle))
+            if (GUILayout.Button(enumValue.ToString().TrimStart('_'), buttonStyle))
             {
-                audioManager.targetSampleRate = int.Parse(sampleRate);
+                if (typeof(T) == typeof(SampleRate))
+                {
+                    audioManager.targetSampleRate = (int)(object)enumValue;
+                }
+                else if (typeof(T) == typeof(BitDepth))
+                {
+                    audioManager.targetBitDepth = (int)(object)enumValue;
+                }
                 audioManager.reloadAudioData();
             }
         }
 
-        //Create the function
-        void CreateBitDepthButton(string bitDepth)
-        {
-            if (GUILayout.Button(bitDepth, buttonStyle))
-            {
-                audioManager.targetBitDepth = int.Parse(bitDepth);
-                audioManager.reloadAudioData();
-            }
-        }
+        SampleRate sampleRate = (SampleRate)audioManager.targetSampleRate;
+        BitDepth bitDepth = (BitDepth)audioManager.targetBitDepth;
 
         GUILayout.Label("Sample Rate: " + audioManager.targetSampleRate);
-        GUILayout.BeginHorizontal();
-        CreateSampleRateButtons("8000");
-        CreateSampleRateButtons("16000");
-        CreateSampleRateButtons("32000");
-        GUILayout.EndHorizontal();
-        GUILayout.BeginHorizontal();
-        CreateSampleRateButtons("44100");
-        CreateSampleRateButtons("48000");
-        CreateSampleRateButtons("96000");
-        GUILayout.EndHorizontal();
-
-
-
+        sampleRate = (SampleRate)EditorGUILayout.EnumPopup("", sampleRate, GUILayout.Width(halfWidth));
+        audioManager.targetSampleRate = (int)sampleRate;
 
         GUILayout.Label("Bit Depth: " + audioManager.targetBitDepth);
-        GUILayout.BeginHorizontal();
-        CreateBitDepthButton("8");
-        CreateBitDepthButton("16");
-        CreateBitDepthButton("24");
-        GUILayout.EndHorizontal();
-        GUILayout.BeginHorizontal();
-        CreateBitDepthButton("32");
-        CreateBitDepthButton("48");
-        CreateBitDepthButton("64");
-        GUILayout.EndHorizontal();
+        bitDepth = (BitDepth)EditorGUILayout.EnumPopup("", bitDepth, GUILayout.Width(halfWidth));
+        audioManager.targetBitDepth = (int)bitDepth;
+
+        audioManager.reloadAudioData();
 
         //Debug timeline variabled ALL
         Debug.Log("Timeline: " + timelineView.maxTime + " Tracks: " + audioManager.audioTracks.Count + " Track Height: " + timelineView.trackHeight + " Position: " + timelineView.timelinePosition + " Zoom: " + timelineView.timelinezoom);
@@ -219,7 +231,7 @@ public class Audiotimeline : EditorWindow
 
         GUILayout.BeginHorizontal(GUILayout.Width(50));
         //Focus the folder
-        if (GUILayout.Button("Focus Folder", buttonStyle2))
+        if (GUILayout.Button("Find", buttonStyle2))
         {
             //Focus in project window
             //Get relative path
@@ -227,7 +239,7 @@ public class Audiotimeline : EditorWindow
             EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
         }
         //Create File
-        if (GUILayout.Button("Create Mix", buttonStyle2))
+        if (GUILayout.Button("CREATE MIX", buttonStyle2))
         {
             audioManager.createMix(targetfolder, filename + ".wav");
         }
@@ -238,6 +250,7 @@ public class Audiotimeline : EditorWindow
         {
             AudioTrack newAudioTrack = new AudioTrack(audioClip);
             audioManager.addAudioTrack(newAudioTrack);
+            audioManager.reloadAudioData();
             audioClip = null;
         }
         GUILayout.BeginHorizontal(GUILayout.Width(50));
@@ -283,6 +296,20 @@ public class Audiotimeline : EditorWindow
                 //set Track inittime to 0
                 track.initTime = 0;
             }
+
+            /*
+            //Button to print the first 200 values of audioCurve
+            if (GUILayout.Button("Curve", GUILayout.Width(widthSidePanel / 4)))
+            {
+                for (int i = 0; i < 200; i++)
+                {
+                    if (i < track.audioCurve[0].Length)
+                    {
+                        Debug.Log("Curve: " + track.audioCurve[0][i] + " " + track.audioCurve[1][i]);
+                    }
+                }
+            }
+            */
 
             GUILayout.EndHorizontal();
         }
@@ -336,7 +363,7 @@ public class TimelineView
     }
 
     //Draw the Timeline
-    public bool DrawTimeline(float widthTimeline, float xPos, ColorTextureManager colormgr, Event current)
+    public bool DrawTimeline(AudiotrackManager amgr, float widthTimeline, float xPos, ColorTextureManager colormgr, Event current, string targetfolder, string filename)
     {
         //create style for box
         GUIStyle boxstylebg = new GUIStyle(GUI.skin.box);
@@ -348,9 +375,15 @@ public class TimelineView
 
 
         //set grab element to -1 if mouse is up or position is out of bounds of widthTimeline and Xpos or height with a margin of 10
-        if (current.type == EventType.MouseUp || current.mousePosition.x < xPos || current.mousePosition.x > xPos + widthTimeline || current.mousePosition.y < 0 || current.mousePosition.y > trackHeight * (trackCount + 10))
+        if (grabbedElement != -1 && (current.type == EventType.MouseUp || current.mousePosition.x < xPos || current.mousePosition.x > xPos + widthTimeline || current.mousePosition.y < 0 || current.mousePosition.y > trackHeight * (trackCount + 10)))
         {
             grabbedElement = -1;
+            //Mix the audio data
+            if (audiotrackmgr.audioTracks.Count > 0 && amgr.autobuild)
+            {
+                amgr.createMix(targetfolder, filename + ".wav");
+                AssetDatabase.Refresh();
+            }
         }
         else
         {
@@ -511,67 +544,54 @@ public class TimelineView
 
 
 
-
-
-
-            //Draw the Waveform using the bit depth relatively and create a box
-            float resolution = 250*audiotrackmgr.audioTracks[i].clip.length * timelinezoom.x / 1000;
-            float sumsampling=12;
-            //get the max value that the bit depth can reach
             float maxvalue = Mathf.Pow(2, audiotrackmgr.audioTracks[i]._targetBitDepth) - 1;
-            //iterate 100 Times 
-            for (float j = 0; j < resolution*sumsampling; j++)
-            {
 
 
-                float sampleValue = 0;
-                //Loo for channels
-                for (int ch = 0; ch < audiotrackmgr.audioTracks[i].audioData.Length; ch++)
-                {
-                    //getting the next closest starting byte of a sample using modulo
-                    int sampleIndex = (int)(audiotrackmgr.audioTracks[i].audioData[ch].Length * (j / (resolution*sumsampling))) - (((int)(audiotrackmgr.audioTracks[i].audioData[ch].Length * (j / (resolution*sumsampling)))) % (audiotrackmgr.audioTracks[i]._targetBitDepth / 8));
-
-                    int samplebuffer = 0;
-
-                    //Loop through the bit depth
-                    for (int b = 0; b < audiotrackmgr.audioTracks[i]._targetBitDepth / 8; b++)
-                    {
-                        //Shift the bits to the left and add the next byte
-                        samplebuffer = samplebuffer << 8;
-                        samplebuffer += audiotrackmgr.audioTracks[i].audioData[ch][sampleIndex + b];
-                    }
-
-              
-                        sampleValue = (samplebuffer +(sampleValue*1))/2;
-                    
-
-                }
-
-                if (j%sumsampling==0 && false){
-                EditorGUI.DrawRect(new Rect(
-                    (int)(_x + ((j / (resolution)) * (_width)))/sumsampling, 
-                    (int)(_y + (_height/2)-(sampleValue / (maxvalue)) * _height/2),
-                    (int)((_width) / (resolution)), 
-                    (int)((sampleValue / (maxvalue)) * _height)
-                    
-                ),GetRGBA(ColorRGBA.red));
-                }
-                //Testrect
-                //EditorGUI.DrawRect(new Rect(_x , _y, _width, _height), GetRGBA(ColorRGBA.red));
+            // Draw the Waveform using the bit depth relatively and create a box
+            float resolution = 250 * audiotrackmgr.audioTracks[i].clip.length * timelinezoom.x / 1000;
 
 
 
+            // Calculate the width of each box
+            float boxWidth = _width / resolution;
 
+            /*
 
-            }
+                        // Get the audioCurve from the track
+            float[][] audioCurve = audiotrackmgr.audioTracks[i].audioCurve;
 
+            
+                        // Iterate over the resolution
+                        for (int j = 0; j < resolution; j++)
+                        {
+                            // Calculate the index in the audioCurve array
+                            int index = (int)(j / resolution * audioCurve[0].Length);
 
-            //Draw box with size and position of rect
+                            // Iterate over each channel in the audioCurve
+                            for (int ch = 0; ch < audioCurve.Length; ch++)
+                            {
+                                // Calculate the height of the box
+                                float boxHeight = (audioCurve[ch][index] / maxvalue) * _height;
 
-            EditorGUI.LabelField(new Rect(_x, _y, 20, 12), audiotrackmgr.audioTracks[i].clip.name
-            //Make color black and bold
-            , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.black }, fontStyle = FontStyle.Bold, fontSize = 12 }
-            );
+                                // Determine the color based on the channel
+                                ColorRGBA color = (ch == 0) ? ColorRGBA.red : ColorRGBA.green;
+
+                                // Draw the box
+                                EditorGUI.DrawRect(new Rect(
+                                    _x + (j * boxWidth),
+                                    _y + (_height / 2) - (boxHeight / 2),
+                                    boxWidth,
+                                    boxHeight
+                                ), GetRGBA(color));
+                            }
+                        }
+                        //Draw box with size and position of rect
+
+                        EditorGUI.LabelField(new Rect(_x, _y, 20, 12), audiotrackmgr.audioTracks[i].clip.name
+                        //Make color black and bold
+                        , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.black }, fontStyle = FontStyle.Bold, fontSize = 12 }
+                        );
+                        */
 
         }
 
@@ -628,6 +648,8 @@ public class AudiotrackManager
     public int targetBitDepth = 16; // Target bit depth in bits
     public int targetChannels = 2; // Target number of channels
 
+    public bool autobuild = false;
+
     //init  
     public AudiotrackManager()
     {
@@ -665,9 +687,12 @@ public class AudiotrackManager
     {
 
         //Load all audio data
-        reloadAudioData();
+        //reloadAudioData();
         byte[][] mixedData = MixAudioData();
         WriteWavFile(mixedData, filePath, filename, targetSampleRate, targetChannels, targetBitDepth);
+
+        //Reload the Folder
+        AssetDatabase.Refresh();
     }
 
     public int getMixLength(int channel)
@@ -675,9 +700,9 @@ public class AudiotrackManager
         int maxLength = 0;
         foreach (var audiotrack in audioTracks)
         {
-            if (audiotrack.audioData[channel].Length > maxLength)
+            if ((int)((audiotrack.audioData[channel].Length + ((audiotrack.initTime) * audiotrack._targetSampleRate * (audiotrack._targetBitDepth / 8)))) > maxLength)
             {
-                maxLength = audiotrack.audioData[channel].Length + (int)audiotrack.initTime * audiotrack._targetSampleRate;
+                maxLength = (int)(audiotrack.audioData[channel].Length + ((audiotrack.initTime) * audiotrack._targetSampleRate * (audiotrack._targetBitDepth / 8)));
             }
         }
         return maxLength;
@@ -688,7 +713,7 @@ public class AudiotrackManager
         byte[][][] mixedData = new byte[2][][]; //CHANNEL TRACK BYTES
 
         //set amount of tracks
-        for (int ch = 0; ch < 2; ch++)
+        for (int ch = 0; ch < targetChannels; ch++)
         {
             mixedData[ch] = new byte[audioTracks.Count][];
 
@@ -702,21 +727,36 @@ public class AudiotrackManager
             }
         }
 
-        for (int ch = 0; ch < 2; ch++)
+
+        int bytedepth = (targetBitDepth / 8);
+
+        for (int ch = 0; ch < targetChannels; ch++)
         {
             for (int i = 0; i < audioTracks.Count; i++) //Iterate Tracks
             {
-                for (int b = 0; b < mixedData[ch][i].Length; b++) //Iterate Bytes
+
+                int trackstartsample = (int)(audioTracks[i].initTime * targetSampleRate);
+                int trackendsample = +(int)(trackstartsample) + ((audioTracks[i].audioData[ch].Length) / bytedepth);
+
+                //Initialize all with 0
+                for (int b = 0; b < mixedData[ch][i].Length; b++)
                 {
+                    mixedData[ch][i][b] = 0;
+                }
+
+                for (int s = 0; s < mixedData[ch][i].Length; s = s + bytedepth) //Iterate Samples
+                {
+                    int b = s * bytedepth;
                     //Write 0 if before or after the track
-                    if (b >= (int)(audioTracks[i].initTime * targetSampleRate) && b < (int)(audioTracks[i].initTime * targetSampleRate) + audioTracks[i].audioData[ch].Length)
+                    if (s >= trackstartsample && s < trackendsample)
                     {
-                        mixedData[ch][i][b] = audioTracks[i].audioData[ch][b - (int)(audioTracks[i].initTime * targetSampleRate)];
+                        for (int byteIndex = 0; byteIndex < bytedepth; byteIndex++) //Iterate Bytes
+                        {
+                            mixedData[ch][i][b + byteIndex] = audioTracks[i].audioData[ch][b + byteIndex - (trackstartsample * bytedepth)];
+                        }
+
                     }
-                    else
-                    {
-                        mixedData[ch][i][b] = 0;
-                    }
+
                 }
             }
         }
@@ -724,53 +764,48 @@ public class AudiotrackManager
         ReportAudioData(mixedData[0][0], "Collected CH1");
         ReportAudioData(mixedData[1][0], "Collected CH2");
 
-        return MixAudioBytes(mixedData);
+        return MixAudioBytes(mixedData, targetBitDepth);
     }
 
+    // Combine all audio tracks into one byte array
     //Combine all audio tracks into one byte array
-    public byte[][] MixAudioBytes(byte[][][] audiolines)
+    public byte[][] MixAudioBytes(byte[][][] audiolines, int bitDepth)
     {
         int numChannels = audiolines.Length;
         int numTracks = audiolines[0].Length;
         int numBytes = audiolines[0][0].Length;
 
         byte[][] mixedData = new byte[numChannels][];
-
         for (int ch = 0; ch < numChannels; ch++)
         {
             mixedData[ch] = new byte[numBytes];
-
-            for (int i = 0; i < numBytes; i++)
-            {
-                int product = 1;
-                for (int j = 0; j < numTracks; j++)
-                {
-                    product *= audiolines[ch][j][i];
-                }
-                mixedData[ch][i] = (byte)product;
-            }
         }
 
-        // Normalize the mixed data
-        for (int ch = 0; ch < numChannels; ch++)
+        for (int j = 0; j < numTracks; j++) //Tracks
         {
-            byte originalMax = mixedData[ch].Max();
-            byte multipliedMax = mixedData[ch].Max();
-
-            for (int i = 0; i < numBytes; i++)
+            for (int ch = 0; ch < numChannels; ch++) //Channels
             {
-                if (multipliedMax != 0)
+                for (int i = 0; i < numBytes; i += bitDepth / 8) //Samples
                 {
-                    mixedData[ch][i] = (byte)(mixedData[ch][i] * originalMax / multipliedMax);
-                }
-                else
-                {
-                    mixedData[ch][i] = 0;
+                    int sum = 0;
+                    for (int b = 0; b < bitDepth / 8; b++)
+                    {
+                        if (i + b < audiolines[ch][j].Length)
+                        {
+                            sum |= audiolines[ch][j][i + b] << (8 * b);
+                        }
+                    }
+                    for (int b = 0; b < bitDepth / 8; b++)
+                    {
+                        if (i + b < mixedData[ch].Length)
+                        {
+                            mixedData[ch][i + b] += (byte)((sum >> (8 * b)) & 0xFF);
+                        }
+                    }
                 }
             }
         }
 
-        //Debug
         Debug.Log("Mixed Data CH1: " + mixedData[0].Length);
         Debug.Log("Mixed Data CH2: " + mixedData[1].Length);
 
@@ -779,7 +814,6 @@ public class AudiotrackManager
 
         return mixedData;
     }
-
 
     //Get C
 
@@ -935,10 +969,25 @@ public class AudioTrack
     private int _oldBitDepth = 0;
     private float _length = 0;
 
+    public float[][] audioCurve; //channel, sample
+    public int curveResolution = 250;
+
 
     public int _targetSampleRate = 44100; // Target sample rate in Hz
     public int _targetBitDepth = 16; // Target bit depth in bits
     public int _targetChannels = 2; // Target number of channels
+
+
+
+    public AudioTrack(AudioClip clip)
+    {
+        this.clip = clip;
+        this.absolutePath = AssetDatabase.GetAssetPath(clip);
+
+        LoadAudioData();
+    }
+
+    //Samples to int array
 
     public static void ReportAudioData(byte[] bytedata, string name = "")
     {
@@ -955,14 +1004,112 @@ public class AudioTrack
         //Total size
         Debug.Log("[" + name + "] Bytes: " + bytedata.Length + "// Max: " + max + "// Median: " + average / bytedata.Length);
     }
-    public AudioTrack(AudioClip clip)
-    {
-        this.clip = clip;
-        this.absolutePath = AssetDatabase.GetAssetPath(clip);
 
-        LoadAudioData();
+    private float[] Downsample(float[] samples, int desiredSamplesCount, int byteDepth)
+    {
+        int originalSamplesCount = samples.Length;
+        float[] downsampledSamples = new float[desiredSamplesCount];
+        float factor = (float)originalSamplesCount / desiredSamplesCount;
+
+        // Calculate maximum possible amplitude based on the byte depth
+        float maxPossibleAmplitude = (float)Math.Pow(2, byteDepth * 8 - 1);
+
+        for (int i = 0; i < desiredSamplesCount; i++)
+        {
+            int start = (int)Math.Floor(i * factor);
+            int end = (int)Math.Min(Math.Ceiling((i + 1) * factor), originalSamplesCount);
+
+            // Calculate max and min values within the downsampling interval
+            float min = samples[start];
+            float max = samples[start];
+
+            for (int j = start + 1; j < end; j++)
+            {
+                if (samples[j] < min)
+                    min = samples[j];
+                if (samples[j] > max)
+                    max = samples[j];
+            }
+
+            // Calculate amplitude modifier
+            float amplitudeModifier = maxPossibleAmplitude != 0 ? Math.Max(Math.Abs(max), Math.Abs(min)) / maxPossibleAmplitude : 0;
+
+            // Calculate difference modifier
+            float totalDifference = 0;
+            for (int j = start; j < end - 1; j++)
+            {
+                totalDifference += Math.Abs(samples[j + 1] - samples[j]); // Taking absolute of difference
+            }
+            float differenceModifier = (end - start - 1) != 0 ? totalDifference / (maxPossibleAmplitude * (end - start - 1)) : 0;
+
+            // Calculate curve value
+            downsampledSamples[i] = amplitudeModifier * differenceModifier;
+        }
+
+        return downsampledSamples;
     }
 
+
+    public void getFloatArrayFromSamples()
+    {
+        // Initialize the float array for storing samples
+        float[][] samples = new float[clip.channels][];
+
+        // Iterate over channels
+        for (int ch = 0; ch < clip.channels; ch++)
+        {
+            // Initialize the array for the current channel
+            samples[ch] = new float[clip.samples];
+
+            // Iterate over samples
+            for (int i = 0; i < clip.samples; i++)
+            {
+                // Initialize the sample value
+                float sampleValue = 0;
+
+                if (_targetBitDepth > 8)
+                {
+                    // Iterate over bytes representing the sample value
+                    for (int b = 0; b < _targetBitDepth / 8; b++)
+                    {
+                        // Extract the byte value from audioData
+                        byte byteValue = audioData[ch][i * (_targetBitDepth / 8) + b];
+
+                        if (_targetBitDepth > 8)
+                        {
+                            // Calculate the sign extension mask by shifting a single bit to the left to reach the sign bit position and then negating it
+                            int signExtensionMask = ~((1 << (_targetBitDepth - 1)) - 1);
+
+                            // If the sign bit is set, perform sign extension
+                            if ((byteValue & (1 << (_targetBitDepth - 1))) != 0)
+                            {
+                                // Perform sign extension by OR-ing with the sign extension mask
+                                byteValue |= (byte)signExtensionMask;
+                            }
+                        }
+                        // Convert signed integer to floating-point value in the range [-1, 1]
+                        sampleValue += (float)byteValue / (float)Math.Pow(2, _targetBitDepth * 8 - 1);
+                    }
+
+                }
+                else
+                {
+
+                    sampleValue = audioData[ch][i] / (float)Math.Pow(2, _targetBitDepth * 8 - 1);
+                }
+
+
+                // Store the sample value in the float array
+                samples[ch][i] = sampleValue;
+            }
+        }
+
+        audioCurve = new float[_targetChannels][];
+        for (int ch = 0; ch < _targetChannels; ch++)
+        {
+            audioCurve[ch] = Downsample(samples[ch], curveResolution, _targetBitDepth / 8);
+        }
+    }
 
     public void LoadAudioData()
     {
@@ -973,6 +1120,8 @@ public class AudioTrack
         audioData = new byte[2][];
         this.audioData[0] = GetSampledAudioData(channelData[0], _oldSampleRate, _oldBitDepth, _targetSampleRate, _targetBitDepth);
         this.audioData[1] = GetSampledAudioData(channelData[1], _oldSampleRate, _oldBitDepth, _targetSampleRate, _targetBitDepth);
+
+        //getFloatArrayFromSamples();
 
         //Debug count of audio data
         Debug.Log("Audio Data CH1: " + audioData[0].Length);
