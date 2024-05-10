@@ -500,7 +500,7 @@ public class TimelineView
         {
 
 
-            if (i % 2 == 0 || i % 10==0)
+            if (i % 2 == 0 || i % 10 == 0)
             {
                 EditorGUI.DrawRect(new Rect(i * timelinezoom.x / 10, 0, timelinezoom.x / 10, (trackHeight + 10) * (trackCount + 10)), GetRGBA(ColorRGBA.grayscale_032));
             }
@@ -1258,19 +1258,22 @@ public class AudioTrack
         //Data Init ------------------------------------------------
 
         byte[] fileData = File.ReadAllBytes(absolutePath);
-        byte[] audioBytes = readAudioBytes();
+        byte[] audioBytes = new byte[1];
 
         //Check for File extension
         if (Path.GetExtension(absolutePath) == ".wav")
         {
             header = ReadWavHeader(fileData);
-            audioBytes = GetAudioDataFromWav(audioBytes, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
+            audioBytes = GetAudioDataFromWav(fileData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
             ReportAudioData(audioBytes, "Read WAV Audio Bytes");
         }
         else if (Path.GetExtension(absolutePath) == ".mp3")
         {
             header = ReadMp3Header(absolutePath);
-            audioBytes = GetAudioDataFromMp3(absolutePath);
+            byte[] newWavData = GetAudioDataFromMp3(absolutePath);
+            header = ReadWavHeader(newWavData);
+            audioBytes = GetAudioDataFromWav(newWavData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
+            ReportAudioData(audioBytes, "Read MP3 Audio Bytes");
         }
 
         else return null;
@@ -1289,6 +1292,16 @@ public class AudioTrack
         int bitDepth = header["BitsPerSample"];
         int bytesPerSample = bitDepth / 8;
 
+        //Debug all Variables
+        Debug.Log("Total Bytes: " + totalBytes);
+        Debug.Log("Duration: " + durationInSeconds);
+        Debug.Log("Channels: " + channels);
+        Debug.Log("Sample Rate: " + sampleRate);
+        Debug.Log("Block Size: " + blockSize);
+        Debug.Log("Bit Depth: " + bitDepth);
+        Debug.Log("Bytes Per Sample: " + bytesPerSample);
+
+
         //Abort if 0
         if (sampleRate == 0 || bitDepth == 0 || channels == 0)
         {
@@ -1303,20 +1316,41 @@ public class AudioTrack
         _length = clip.length;
 
         //Validate Samplecount
-        int validateSamplecount = ((audioBytes.Length) / (bytesPerSample) / channels);
-        if (validateSamplecount != Math.Round(sampleRate * durationInSeconds))
+        int validateSamplecount = ((audioBytes.Length) / (bytesPerSample));
+        if (validateSamplecount != Math.Round(sampleRate * durationInSeconds * channels))
         {
             //Debug warning with samplecount and expected samplecount
             Debug.LogWarning("Invalid Sample Count");
             Debug.LogWarning("Sample Count: " + validateSamplecount);
-            Debug.LogWarning("Expected Sample Count: " + sampleRate * durationInSeconds);
+            Debug.LogWarning("Expected Sample Count: " + sampleRate * durationInSeconds * channels);
             //Try if Channelcount was wrong
             channels = 1;
             validateSamplecount = (int)Math.Round((double)audioBytes.Length / bytesPerSample / channels);
             if (validateSamplecount != (int)Math.Round(sampleRate * durationInSeconds))
             {
-                Debug.LogError("Invalid Sample Count");
-                return null;
+                Debug.LogWarning("Invalid Sample Count...recreating placeholderdata");
+                //recreate the audio data with empty data on the end fitting the exspected length
+                byte[] newAudioBytes = new byte[1 + (int)Math.Round(sampleRate * durationInSeconds) * bytesPerSample * channels];
+
+                int copiedBytes = 0;
+                for (int i = 0; i < newAudioBytes.Length; i++)
+                {
+                    //If end of audioBytes is reached fill with 0
+                    if (i >= audioBytes.Length || i >= newAudioBytes.Length)
+                    {
+                        newAudioBytes[i] = 0;
+                    }
+                    else
+                    {
+                        copiedBytes++;
+                        newAudioBytes[i] = audioBytes[i];
+                    }
+                }
+                Debug.LogWarning("Copied Bytes: " + copiedBytes);
+
+                audioBytes = newAudioBytes;
+                //Debug new audiobytes
+                Debug.Log(audioBytes.Length.ToString() + " - Recreated Audio Bytes");
             }
         }
 
@@ -1325,7 +1359,7 @@ public class AudioTrack
 
 
         // Create a jagged array to hold the audio data for each channel
-        byte[][] channelData = new byte[channels][];
+        byte[][] channelData = new byte[_targetChannels][];
 
         // Calculate the number of samples
         int numSamples = totalBytes / blockSize;
@@ -1353,8 +1387,20 @@ public class AudioTrack
             }
         }
 
-        ReportAudioData(channelData[0], ("Separated CH1"));
-        ReportAudioData(channelData[1], ("Separated CH2"));
+        //if channel was just 1 copy amounts of targetchannels
+        if (channels == 1)
+        {
+            for (int i = 1; i < _targetChannels; i++)
+            {
+                channelData[i] = channelData[0];
+            }
+        }
+
+        //iterate Channels
+        for (int i = 0; i < channels; i++)
+        {
+            ReportAudioData(channelData[i], ("Separated CH" + i));
+        }
 
         return channelData;
     }
@@ -1514,15 +1560,48 @@ public class AudioTrack
     }
     public byte[] GetAudioDataFromMp3(string filePath)
     {
+        /*
         using (var reader = new NAudio.Wave.Mp3FileReader(filePath))
         using (var pcmStream = new NAudio.Wave.WaveFormatConversionStream(new NAudio.Wave.WaveFormat(44100, 2), reader))
         {
             var data = new byte[pcmStream.Length];
-            pcmStream.Read(data, 0, data.Length);
-            return data;
-        }
+            int totalBytesRead = 0;
+            while (totalBytesRead < data.Length)
+            {
+                totalBytesRead += pcmStream.Read(data, totalBytesRead, data.Length - totalBytesRead);
+            }
+
+            
+
+            // Check the number of channels and sample rate
+            int channels = pcmStream.WaveFormat.Channels;
+            int sampleRate = pcmStream.WaveFormat.SampleRate;
+            Console.WriteLine($"Channels: {channels}, Sample Rate: {sampleRate}");
+
+*/
+
+        //store as tmp.wav in the CacheFolder and read it as bytes
+        ConvertMp3ToWav(filePath, Application.temporaryCachePath + "/tmp.wav");
+
+        //return the bytes
+        byte[] data = File.ReadAllBytes(Application.temporaryCachePath + "/tmp.wav");
+        return data;
     }
 
+
+    public void ConvertMp3ToWav(string mp3FilePath, string wavFilePath)
+    {
+        using (var reader = new NAudio.Wave.Mp3FileReader(mp3FilePath))
+        using (var writer = new NAudio.Wave.WaveFileWriter(wavFilePath, reader.WaveFormat))
+        {
+            byte[] buffer = new byte[reader.WaveFormat.AverageBytesPerSecond * 4];
+            int bytesRead;
+            while ((bytesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                writer.Write(buffer, 0, bytesRead);
+            }
+        }
+    }
     public Dictionary<string, int> ReadMp3Header(string filePath)
     {
         using (var reader = new NAudio.Wave.Mp3FileReader(filePath))
