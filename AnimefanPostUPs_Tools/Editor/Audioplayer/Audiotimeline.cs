@@ -560,7 +560,7 @@ public class TimelineView
                         // Get the audioCurve from the track
             float[][] audioCurve = audiotrackmgr.audioTracks[i].audioCurve;
 
-            
+
                         // Iterate over the resolution
                         for (int j = 0; j < resolution; j++)
                         {
@@ -1390,16 +1390,16 @@ public class AudioTrack
 
             // Read the fmt chunk
             string fmt = new string(reader.ReadChars(4));
-            if (fmt != "fmt ")
-                throw new Exception("Invalid file format");
+            //if (fmt != "fmt ")
+                //throw new Exception("Invalid file format");
 
             // Skip chunk size
             reader.ReadInt32();
 
             // Read audio format (should be 1 for PCM)
             short audioFormat = reader.ReadInt16();
-            if (audioFormat != 1)
-                throw new Exception("Invalid file format");
+            //if (audioFormat != 1)
+                //throw new Exception("Invalid file format");
 
             // Read number of channels
             short numChannels = reader.ReadInt16();
