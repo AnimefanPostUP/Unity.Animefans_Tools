@@ -169,17 +169,26 @@ public class Audiotimeline : EditorWindow
 
         //Field to Set the Name
         //label
+        string oldfilename = filename;
         GUILayout.Label("Filename:", GUILayout.Width(halfWidth));
         filename = EditorGUILayout.TextField("", filename, GUILayout.Width(halfWidth));
 
 
 
 
+        string oldfolder = targetfolder;
         targetfolder = EditorGUILayout.TextField("", targetfolder, GUILayout.Width(halfWidth));
         if (GUILayout.Button("Select", GUILayout.Width(halfWidth)))
         {
             targetfolder = EditorUtility.OpenFolderPanel("Select Folder", targetfolder, "");
         }
+
+        if (GUILayout.Button("Try Find Json", GUILayout.Width(halfWidth)))
+        {
+            audioManager.checkForJson(targetfolder, filename);
+        }
+
+
 
 
 
@@ -242,7 +251,7 @@ public class Audiotimeline : EditorWindow
         //Create File
         if (GUILayout.Button("CREATE MIX", buttonStyle2))
         {
-            audioManager.createMix(targetfolder, filename + ".wav");
+            audioManager.createMix(targetfolder, filename);
         }
 
         GUILayout.EndHorizontal();
@@ -362,6 +371,8 @@ public class TimelineView
     public float trackHeightOffset = 20;
 
     AudiotrackManager audiotrackmgr;
+
+    //String for Projectfile
 
     private static Color GetRGBA(ColorRGBA color)
     {
@@ -487,9 +498,9 @@ public class TimelineView
 
         //Draw gray background 
         //EditorGUI.DrawRect(new Rect(0, 0, maxTime*100, trackHeight * trackCount), GetRGBA(ColorRGBA.grayscale_016));
-        GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, timelinePosition_Offset.y, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 50)));
+        GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, timelinePosition_Offset.y, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 2)));
 
-        timelinePosition = GUILayout.BeginScrollView(timelinePosition, GUILayout.Width((int)(maxTime * 10) * timelinezoom.x), GUILayout.Height(200));
+        timelinePosition = GUILayout.BeginScrollView(timelinePosition, GUILayout.Width((int)(maxTime * 10) * timelinezoom.x), GUILayout.Height(trackCount * (trackHeight * 2 + 2)));
         GUILayout.BeginHorizontal(GUILayout.Width(maxTime * timelinezoom.x));
 
         GUIStyle boxstyle = new GUIStyle(GUI.skin.box);
@@ -593,12 +604,12 @@ public class TimelineView
                 //EditorGUI.DrawRect(new Rect(audiotrackmgr.audioTracks[i].initTime * 100, i * (trackHeight + 10) + 40, trackHeightOffset + audiotrackmgr.audioTracks[i].clip.length * 100, 30), GetRGBA(ColorRGBA.grayscale_064));
 
                 EditorGUI.LabelField(new Rect(audiotrackmgr.audioTracks[i].initTime * timelinezoom.x, trackHeightOffset + i * (trackHeight + 10) + 25, 100, 12), Math.Round(audiotrackmgr.audioTracks[i].initTime, 2).ToString()
-                , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.black }, fontStyle = FontStyle.Bold, fontSize = 14 }
+                , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.white }, fontStyle = FontStyle.Bold, fontSize = 14 }
                 );
 
-                EditorGUI.LabelField(new Rect(audiotrackmgr.audioTracks[i].initTime * timelinezoom.x + (audiotrackmgr.audioTracks[i].clip.length / 2) * timelinezoom.x, trackHeightOffset + i * (trackHeight + 10) + 25, 100, 12),
+                EditorGUI.LabelField(new Rect(audiotrackmgr.audioTracks[i].initTime * timelinezoom.x + (int)(audiotrackmgr.audioTracks[i].clip.length * 0.92) * timelinezoom.x, trackHeightOffset + i * (trackHeight + 10) + 25, 100, 12),
                 (Math.Round(audiotrackmgr.audioTracks[i].initTime + audiotrackmgr.audioTracks[i].clip.length, 2)).ToString()
-                , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.black }, fontStyle = FontStyle.Bold, fontSize = 14 }
+                , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.white }, fontStyle = FontStyle.Bold, fontSize = 14 }
                 );
             }
 
@@ -618,7 +629,7 @@ public class TimelineView
         {
             //Draw 2 White Boxes to indicate the position
             EditorGUI.DrawRect(new Rect(xPos + (widthTimeline) / 2 - 1, 0, 2, 900), GetRGBA(ColorRGBA.white));
-            EditorGUI.DrawRect(new Rect(0, (250) - 1, 2000, 2), GetRGBA(ColorRGBA.white));
+            EditorGUI.DrawRect(new Rect(0, (190) - 1, 2000, 2), GetRGBA(ColorRGBA.white));
         }
 
         return doRepaint;
@@ -673,15 +684,118 @@ public class AudiotrackManager
         audioTracks.Remove(track);
     }
 
+    public void checkForJson(string filePath, string filename)
+    {
+        //Try to find the json file in the current path using the filename
+        if (File.Exists(filePath + "/" + filename + ".json"))
+        {
+            //Load the json file
+            LoadJson(filePath + "/" + filename + ".json");
+        }
+    }
+    [Serializable]
+    public class AudioData
+    {
+        public string[] ClipPaths;
+        public float[] InitTimes ;
+        public string OutputFilePath ;
+        public string OutputFileName ;
+    }
+
+    //Load Json
+    public void LoadJson(string path)
+    {
+        // Load the Json File
+        string json = File.ReadAllText(path);
+        AudioData audioData = JsonUtility.FromJson<AudioData>(json);
+
+        // Clear the audioTracks list
+        audioTracks.Clear();
+
+        // Try to find and add the Clips
+        for (int i = 0; i < audioData.ClipPaths.Length; i++)
+        {
+            AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioData.ClipPaths[i]);
+            if (clip != null)
+            {
+                AudioTrack audioTrack = new AudioTrack(clip);
+                audioTrack.initTime = audioData.InitTimes[i];
+                audioTracks.Add(audioTrack);
+            }
+        }
+    }
+
     public void createMix(string filePath, string filename)
     {
 
         //Load all audio data
         //reloadAudioData();
         byte[][] mixedData = MixAudioData();
-        CreateWaveFile(mixedData, filePath, filename, targetSampleRate, targetChannels, targetBitDepth);
+        CreateWaveFile(mixedData, filePath, filename+ ".wav", targetSampleRate, targetChannels, targetBitDepth);
 
-        //Reload the Folder
+        AudioData audioData = new AudioData
+        {
+            ClipPaths = new string[audioTracks.Count],
+            InitTimes = new float[audioTracks.Count],
+            OutputFilePath = filePath,
+            OutputFileName = filename
+        };
+
+        for (int i = 0; i < audioTracks.Count; i++)
+        {
+            audioData.ClipPaths[i] = AssetDatabase.GetAssetPath(audioTracks[i].clip);
+            audioData.InitTimes[i] = audioTracks[i].initTime;
+        }
+
+        // Store clips in json
+        string json = JsonUtility.ToJson(audioData);
+
+        // Write the Json File
+        File.WriteAllText(filePath + "/" + filename + ".json", json);
+
+
+        //Get date and time
+        string date = DateTime.Now.ToString("yyyy-MM-dd_HH-mm");
+
+        // Save copy
+        File.WriteAllText(filePath + "/" + date + "_" + filename + "_.json", json);
+
+        // Delete the one with the oldest date if there's more than 5
+        // Get all files in the directory
+        string[] files = Directory.GetFiles(filePath, "*.json");
+
+        // Filter by containing the filename
+        files = files.Where(x => x.Contains("_" + filename + "_")).ToArray();
+
+        // Sort files by creation time in descending order
+        Array.Sort(files, (x, y) => File.GetCreationTime(y).CompareTo(File.GetCreationTime(x)));
+
+        // Group files by day
+        var filesGroupedByDay = files.GroupBy(x => File.GetCreationTime(x).Date);
+
+        foreach (var group in filesGroupedByDay)
+        {
+            // For each day, keep the file with the latest creation time
+            var filesToKeep = group.OrderByDescending(x => File.GetCreationTime(x)).Take(1);
+
+            // For the current day, also keep the latest file of each hour
+            if (group.Key.Date == DateTime.Today)
+            {
+                filesToKeep = filesToKeep.Concat(group.GroupBy(x => File.GetCreationTime(x).Hour)
+                    .Select(g => g.OrderByDescending(x => File.GetCreationTime(x)).First()));
+            }
+
+            // Delete all other files
+            foreach (var file in group.Except(filesToKeep))
+            {
+                File.Delete(file);
+            }
+        }
+
+        // Write the Json File
+        File.WriteAllText(filePath + "/" + filename + ".json", json);
+
+        // Reload the Folder
         AssetDatabase.Refresh();
     }
 
