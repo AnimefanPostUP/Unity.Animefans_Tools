@@ -20,6 +20,10 @@ namespace AnimefanPostUPs_Tools.SmartColorUtility
         //Main Palette
         none = (0u << 24) | (0u << 16) | (0u << 8) | 0u,
         red = (255u << 24) | (0u << 16) | (0u << 8) | 255u,
+        lightred = (255u << 24) | (90u << 16) | (90u << 8) | 255u,
+        brightred = (255u << 24) | (150u << 16) | (150u << 8) | 255u,
+        duskred = (80u << 24) | (0u << 16) | (0u << 8) | 255u,
+        darkred = (40u << 24) | (0u << 16) | (0u << 8) | 255u,
         green = (0u << 24) | (255u << 16) | (0u << 8) | 255u,
         yellow = (255u << 24) | (255u << 16) | (0u << 8) | 255u,
         orange = (255u << 24) | (128u << 16) | (0u << 8) | 255u,
@@ -36,6 +40,7 @@ namespace AnimefanPostUPs_Tools.SmartColorUtility
         //Gray Colors in Stept of 16
         grayscale_000 = (0u << 24) | (0u << 16) | (0u << 8) | 255u,
         grayscale_016 = (16u << 24) | (16u << 16) | (16u << 8) | 255u,
+        grayscale_025 = (25u << 24) | (25u << 16) | (25u << 8) | 255u,
         grayscale_032 = (32u << 24) | (32u << 16) | (32u << 8) | 255u,
         grayscale_048 = (48u << 24) | (48u << 16) | (48u << 8) | 255u,
         grayscale_064 = (64u << 24) | (64u << 16) | (64u << 8) | 255u,
