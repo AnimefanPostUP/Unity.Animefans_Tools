@@ -20,4 +20,26 @@ Hide and Show Icons
 -Better Caching of Preview Images
 -Adjustable Preview Size for Performance
 
-![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/37dc173d-6881-47fe-92fb-0f7c9f0f0bea)
+### Audio Timeline Editor:
+
+![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/77c2a7a6-0a4c-414b-b5e7-c39a0ada4c6f)
+
+![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/ed5d6a49-ae82-4f0a-8675-7d73b8072651)
+
+Functions
+-Synched Playback with the Animation Window
+-Offset, Render as Wav, Conmbine Audioclips (.MP3 or .WAV)
+-Saving, Loading functions of a Json Project File
+
+-Control/Shift to Snap
+-Alt to Scroll around / Shift to Reset View
+-Drag Clips Around Simply
+
+-Remove, Reload and Resert Position
+-Settings for Bitrate, Samplingrate and Channelcount Available
+-Renders the Waveform in the UI
+-Live Fileoutput for Preview
+
+WIP:
+-Mixing Quality will be improved Later
+-Audio Normalization, Equalizer etc. Follows Later
