@@ -10,11 +10,15 @@ using UnityEngine;
 
 using AnimefanPostUPs_Tools.KeyMonitorGroup;
 using AnimefanPostUPs_Tools.KeyActionGroup;
+
 using AnifansAssetManager.FolderInfo;
 using AnifansAssetManager.FileInfo;
+
 using AnimefanPostUPs_Tools.ColorTextureManager;
-using AnimefanPostUPs_Tools.SmartColorUtility;
 using AnimefanPostUPs_Tools.ColorTextureItem;
+
+using AnimefanPostUPs_Tools.SmartColorUtility;
+
 using AnimefanPostUPs_Tools.GUI_LayoutElements;
 
 
@@ -100,9 +104,7 @@ public class AnifanAssetManager : EditorWindow
 
     void init_menu_Previews()
     {
-        menu_Img = new DropdownMenu("Previews", colmgr);
-        //set x and y position
-        menu_Img.position = new Vector2(210, 0);
+        menu_Img = new DropdownMenu("Previews", colmgr, new Vector2(210, 0));
 
         menu_Img.AddItem("Reload",reloadPreviews);
         menu_Img.AddItem("1:1",setResolution_1_1);   
@@ -110,6 +112,7 @@ public class AnifanAssetManager : EditorWindow
         menu_Img.AddItem("64x64",setResolution_64);
         menu_Img.AddItem("128x128",setResolution_128);
         menu_Img.AddItem("256x256",setResolution_256);
+        setDropdownTextures(menu_Img);
     }
 
     //set Resulution of the Image
@@ -136,23 +139,23 @@ public class AnifanAssetManager : EditorWindow
 
     void init_dropdownmenus()
     {
-        dropdownMenu = new DropdownMenu("Visibility", colmgr);
+        dropdownMenu = new DropdownMenu("Visibility", colmgr,new Vector2(0, 0));
         //set x and y position
-        dropdownMenu.position = new Vector2(0, 0);
         dropdownMenu.AddItem("Filters", true);
         dropdownMenu.AddItem("Icons", true);
+        setDropdownTextures(dropdownMenu);
     }
 
     void init_menuText()
     {
-        menu_Text = new DropdownMenu("Text", colmgr);
+        menu_Text = new DropdownMenu("Text", colmgr,new Vector2(105, 0));
         //set x and y position
-        menu_Text.position = new Vector2(105, 0);
         menu_Text.AddItem("Proxys", true);
         menu_Text.AddItem("Forceproxy", false);
         menu_Text.AddItem("Font 8", false, setFontSize_8);
         menu_Text.AddItem("Font 12", true, setFontSize_12);
         menu_Text.AddItem("Font 16", false, setFontSize_16);
+        setDropdownTextures(menu_Text);
     }
 
     public void setFontsize(int size)
@@ -164,6 +167,19 @@ public class AnifanAssetManager : EditorWindow
     public void setFontSize_12() { setFontsize(12); menu_Text.setValue("Font 8", false); menu_Text.setValue("Font 16", false); menu_Text.setValue("Font 12", true); }
     public void setFontSize_16() { setFontsize(14); menu_Text.setValue("Font 8", false); menu_Text.setValue("Font 12", false); menu_Text.setValue("Font 16", true); }
 
+    //Create ColorTextureDummys and set it for a given dropdown
+    void setDropdownTextures(DropdownMenu menu)
+    {
+        menu.itemButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightred, ColorRGBA.grayscale_025, 8);
+        menu.itemButtonNormal =  new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.grayscale_025, ColorRGBA.none, 8);
+        menu.itemButtonHover =  new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_025, 8);
+
+        menu.mainButtonNormal =  new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.grayscale_025, ColorRGBA.none, 8);
+        menu.mainButtonHover =  new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.grayscale_032, ColorRGBA.none, 8);
+        menu.mainButtonActive =  new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.grayscale_032, ColorRGBA.grayscale_064, 8);
+
+        menu.backgroundTexture =  new ColorTextureManager.ColorTextureDummy(TexItemType.Bordered, ColorRGBA.grayscale_032, ColorRGBA.grayscale_016, 8);
+    }
 
     void init_keys()
     {
@@ -190,18 +206,18 @@ public class AnifanAssetManager : EditorWindow
         colmgr.LoadTexture(TexItemType.Solid, ColorRGBA.red, ColorRGBA.none, 8);
 
         //Register some Grids with 2 equal colors
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grey, ColorRGBA.grey, 8);
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.darkgrey, ColorRGBA.darkgrey, 8);
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.lightgrey, ColorRGBA.lightgrey, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grey, ColorRGBA.grey, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.darkgrey, ColorRGBA.darkgrey, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.lightgrey, ColorRGBA.lightgrey, 8);
 
         //generate Grids using grayscale in steps of 32
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grayscale_000, ColorRGBA.grayscale_048, 8);
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grayscale_032, ColorRGBA.grayscale_096, 8);
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grayscale_064, ColorRGBA.grayscale_128, 8);
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grayscale_096, ColorRGBA.grayscale_160, 8);
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grayscale_128, ColorRGBA.grayscale_192, 8);
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grayscale_160, ColorRGBA.grayscale_160, 8);
-        colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grayscale_192, ColorRGBA.grayscale_255, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grayscale_000, ColorRGBA.grayscale_048, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grayscale_032, ColorRGBA.grayscale_096, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grayscale_064, ColorRGBA.grayscale_128, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grayscale_096, ColorRGBA.grayscale_160, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grayscale_128, ColorRGBA.grayscale_192, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grayscale_160, ColorRGBA.grayscale_160, 8);
+        colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grayscale_192, ColorRGBA.grayscale_255, 8);
     }
 
 
@@ -214,24 +230,10 @@ public class AnifanAssetManager : EditorWindow
             selectedFolderIndex = Mathf.Clamp(selectedFolderIndex, 0, folders.Count - 1);
         }
 
-        //Store old event type
-        EventType oldType = Event.current.type;
 
-        //If Dropdown is open use the Mouseevent
-        if (dropdownMenu.isOpen || menu_Text.isOpen || menu_Img.isOpen)
-        {
-            if (Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseDrag)
-            {
-                if (Event.current.type == EventType.MouseDown)
-                {
-                    dropdownMenu.mouseposition = Event.current.mousePosition;
-                    menu_Text.mouseposition = Event.current.mousePosition;
-                    menu_Img.mouseposition = Event.current.mousePosition;
-                }
-                Event.current.type = EventType.Used;
-
-            }
-        }
+        dropdownMenu.checkMouseEvents(Event.current);
+        menu_Text.checkMouseEvents(Event.current);
+        menu_Img.checkMouseEvents(Event.current);
 
         //Scroll Zoom Event
         displaysize = displayContentScrollEvent(displaysize, DISPLAYSIZE_MIN, DISPLAYSIZE_MAX, Event.current);
@@ -269,9 +271,9 @@ public class AnifanAssetManager : EditorWindow
 
         }
         GUILayout.EndHorizontal();
-        dropdownMenu.Draw(oldType);
-        menu_Text.Draw(oldType);
-        menu_Img.Draw(oldType);
+        dropdownMenu.Draw(Event.current, new Vector2(100, 30));
+        menu_Text.Draw(Event.current, new Vector2(100, 30));
+        menu_Img.Draw(Event.current, new Vector2(100, 30));
 
     }
 
@@ -421,7 +423,7 @@ public class AnifanAssetManager : EditorWindow
                     {
                         folders[selectedFolderIndex].displayNames = GUILayout.Toggle(folders[selectedFolderIndex].displayNames, EditorGUIUtility.IconContent("TrueTypeFontImporter Icon").image, style_Button_Header);
                         if (GUILayout.Button(EditorGUIUtility.IconContent("d_PreTexRGB").image, style_Button_Header))
-                            folders[selectedFolderIndex].backgroundtexture = (folders[selectedFolderIndex].backgroundtexture + 1) % colmgr.GetTextureCount(TexItemType.Grid, null, null, -1);
+                            folders[selectedFolderIndex].backgroundtexture = (folders[selectedFolderIndex].backgroundtexture + 1) % colmgr.GetTextureCount(TexItemType.Checker, null, null, -1);
                     }
 
                     //ADD FOLDER FROM FOLDER DIALOG
@@ -525,19 +527,19 @@ public class AnifanAssetManager : EditorWindow
 
     private Texture2D getContentBackgroundTexture()
     {
-        int texturecount = colmgr.GetTextureCount(TexItemType.Grid, null, null, -1);
+        int texturecount = colmgr.GetTextureCount(TexItemType.Checker, null, null, -1);
         //boxStyle_Previewbackground.normal.background = textures_previewbackground[folders[selectedFolderIndex].backgroundtexture % colmgr.grids.Count];
         if (texturecount > 0)
         {
             Texture2D tex = colmgr.GetTextureItemAt(
-            folders[selectedFolderIndex].backgroundtexture % texturecount, TexItemType.Grid, null, null, -1);
+            folders[selectedFolderIndex].backgroundtexture % texturecount, TexItemType.Checker, null, null, -1);
             if (tex != null)
                 return tex;
             return null;
         }
         else
         {
-            return colmgr.LoadTexture(TexItemType.Grid, ColorRGBA.grey, ColorRGBA.darkgrey, 9);
+            return colmgr.LoadTexture(TexItemType.Checker, ColorRGBA.grey, ColorRGBA.darkgrey, 9);
         }
     }
 
@@ -1111,244 +1113,7 @@ public class AnifanAssetManager : EditorWindow
         return type;
     }
 
-    //Class for Dropdown Menu that contains the Name of the Option, a Drawing Function and manages "Dropdown Items" that contain a boolean value or a Function
-    public class DropdownMenu
-    {
-        //Enum for the Dropdown Items if they are a boolean or a function
-        public enum DropdownItemType
-        {
-            Option_Bool,
-            Option_Func,
-            Option_Func_Bool
-        }
 
-        public string name;
-        public DropdownItemType type;
-        public List<DropdownItem> items = new List<DropdownItem>();
-        public bool isOpen;
-        public Rect displayArea;
-        public ColorTextureManager colormgr;
-        public Vector2 mouseposition;
-        public Vector2 position;
-        public DropdownMenu(string name, ColorTextureManager colormgr)
-        {
-
-            this.name = name;
-            this.colormgr = colormgr;
-        }
-
-        public void AddItem(string name, bool value)
-        {
-            items.Add(new DropdownItem(name, value));
-        }
-
-        public void AddItem(string name, Action function)
-        {
-            items.Add(new DropdownItem(name, function));
-        }
-
-        public void AddItem(string name, bool value, Action function)
-        {
-            items.Add(new DropdownItem(name, value, function));
-        }
-
-        public bool getValue(string name)
-        {
-            foreach (DropdownItem item in items)
-            {
-                if (item.name == name)
-                {
-                    return item.value;
-                }
-            }
-            return false;
-        }
-
-        //Set
-        public void setValue(string name, bool value)
-        {
-            foreach (DropdownItem item in items)
-            {
-                if (item.name == name)
-                {
-                    item.value = value;
-                }
-            }
-        }
-
-
-
-        public void Draw(EventType oldType)
-        {
-
-            GUIStyle style = new GUIStyle(GUI.skin.button);
-            style.fixedHeight = 20;
-            style.fixedWidth = 100;
-            //Dark Background
-            style.normal.background = colormgr.LoadTexture(TexItemType.Solid, ColorRGBA.darkgrey);
-
-
-
-            float xOffset = position.x + 2; // The amount to offset the button in the x direction
-            float yOffset = position.y + 2; // The amount to offset the button in the y direction
-
-            float item_xOffset = 5; // The amount to offset the buttons in the x direction
-            float item_yOffset = 15; // The amount to offset the buttons in the y direction
-
-            // Save the rectangle of the button for positioning the dropdown menu
-            Rect buttonRect = new Rect(10 + xOffset, 5 + yOffset, 100, 20);
-
-            //Background style
-            GUIStyle backgroundstyle = new GUIStyle(GUI.skin.box);
-            backgroundstyle.normal.background = colormgr.LoadTexture(TexItemType.Solid, ColorRGBA.grayscale_096, ColorRGBA.none, 32);
-
-            float boxpadding = 2;
-
-
-            if (GUI.Button(buttonRect, name, style))
-            {
-                isOpen = !isOpen;
-            }
-
-            if (isOpen)
-            {
-                int itemHeight = 20; // Replace with the actual height of each item
-                int itemSpacing = 5; // Replace with the actual spacing between items
-                int numItems = items.Count;
-                //Draw largeer Box behind using gradient
-                GUI.Box(new Rect(buttonRect.x + item_xOffset - boxpadding, buttonRect.y + item_yOffset + buttonRect.height - boxpadding, 100 + boxpadding + boxpadding, numItems * (itemHeight + itemSpacing) + boxpadding + boxpadding), "", backgroundstyle);
-
-                displayDropdownOverlay(buttonRect, oldType);
-            }
-        }
-
-        public void displayDropdownOverlay(Rect buttonRect, EventType oldType)
-        {
-            float item_xOffset = 5; // The amount to offset the buttons in the x direction
-            float item_yOffset = 15; // The amount to offset the buttons in the y direction
-            // Set the Display Area  
-            int itemHeight = 30;
-            int itemSpacing = 2;
-            int containerWidth = 100;
-            int containerHeight = items.Count * (itemHeight + itemSpacing);
-
-            // Create a container for the dropdown items
-            Rect containerRect = new Rect(buttonRect.x, buttonRect.y + buttonRect.height, containerWidth, containerHeight);
-            GUI.Box(containerRect, "");
-
-            //create Style for the Dropdown
-            GUIStyle style = new GUIStyle(GUI.skin.button);
-            style.fixedHeight = itemHeight;
-            style.fixedWidth = containerWidth;
-            style.normal.background = colormgr.LoadTexture(TexItemType.Solid, ColorRGBA.darkgrey);
-            style.alignment = TextAnchor.MiddleLeft;
-
-
-
-            bool isMouseDownEvent = oldType == EventType.MouseDown;
-            bool trigger = false;
-
-            for (int i = 0; i < items.Count; i++)
-            {
-                DropdownItem item = items[i];
-
-                // Position the area for this item within the container
-                Rect itemRect = new Rect(buttonRect.x + item_xOffset, buttonRect.y + buttonRect.height + i * (itemHeight + itemSpacing) + item_yOffset, buttonRect.width, itemHeight);
-                if (item.type == DropdownItemType.Option_Bool)
-                {
-                    string icon = item.value ? "P4_CheckOutRemote" : "P4_DeletedRemote";
-                    GUI.Label(itemRect, new GUIContent(item.name, EditorGUIUtility.IconContent(icon).image), style);
-                    //Add icon
-
-                    if (isMouseDownEvent)
-                        if (itemRect.Contains(mouseposition))
-                        {
-                            item.value = !item.value;
-                            trigger = true;
-                        }
-                }
-                else if (item.type == DropdownItemType.Option_Func)
-                {
-                    GUI.Label(itemRect, item.name, style);
-                    if (isMouseDownEvent)
-                        if (itemRect.Contains(mouseposition))
-                        {
-                            item.function();
-                            trigger = true;
-                        }
-                }
-                else if (item.type == DropdownItemType.Option_Func_Bool)
-                {
-                    string icon = item.value ? "P4_CheckOutRemote" : "P4_DeletedRemote";
-                    GUI.Label(itemRect, new GUIContent(item.name, EditorGUIUtility.IconContent(icon).image), style);
-                    if (isMouseDownEvent)
-                        if (itemRect.Contains(mouseposition))
-                        {
-                            item.function();
-                            trigger = true;
-                        }
-                }
-            }
-
-            if (isMouseDownEvent && !trigger)
-            {
-                isOpen = false;
-            }
-        }
-
-        public void displayDropdown()
-        {
-
-            //set the Display Area        
-            foreach (DropdownItem item in items)
-            {
-                if (item.type == DropdownItemType.Option_Bool)
-                {
-                    if (GUILayout.Button(item.name)) item.value = !item.value;
-                }
-                else if (item.type == DropdownItemType.Option_Func)
-                {
-                    if (GUILayout.Button(item.name))
-                    {
-                        item.function();
-                    }
-                }
-            }
-
-        }
-
-        public class DropdownItem
-        {
-            public DropdownItemType type;
-            public string name;
-            public bool value;
-            public Action function;
-
-            public DropdownItem(string name, bool value)
-            {
-
-                this.name = name;
-                this.value = value;
-                this.type = DropdownItemType.Option_Bool;
-            }
-
-            public DropdownItem(string name, Action function)
-            {
-                this.name = name;
-                this.function = function;
-                this.type = DropdownItemType.Option_Func;
-            }
-
-            //funcbool
-            public DropdownItem(string name, bool value, Action function)
-            {
-                this.name = name;
-                this.function = function;
-                this.value = value;
-                this.type = DropdownItemType.Option_Func_Bool;
-            }
-        }
-    }
 
     //================================================================================================
     //LOAD AND SAVE PREFERENCES
@@ -1495,7 +1260,7 @@ public class AnifanAssetManager : EditorWindow
                     GUILayout.Label("Color Debug", EditorStyles.boldLabel);
                     Dictionary<string, string> debug_colmgr = new Dictionary<string, string>
                     {
-                    { "Grids", colmgr.GetTextureCount(TexItemType.Grid, null, null, -1).ToString() },
+                    { "Grids", colmgr.GetTextureCount(TexItemType.Checker, null, null, -1).ToString() },
                     { "Solids", colmgr.GetTextureCount(TexItemType.Solid, null, null, -1).ToString() },
                     { "GradientsH", colmgr.GetTextureCount(TexItemType.Gradient_Horizontal, null, null, -1).ToString() },
                     { "GradientsV", colmgr.GetTextureCount(TexItemType.Gradient_Vertical, null, null, -1).ToString() },

@@ -5,11 +5,14 @@ namespace AnimefanPostUPs_Tools.ColorTextureItem
     using UnityEditor;
     using System.Linq;
     using System.IO;
+
     using AnimefanPostUPs_Tools.ColorTextureManager;
     using AnimefanPostUPs_Tools.SmartColorUtility;
     using static AnimefanPostUPs_Tools.SmartColorUtility.ColorRGBA;
 
-    public enum TexItemType { Solid, Gradient_Horizontal, Gradient_Vertical, Grid }
+    public enum TexItemType { Solid, Gradient_Horizontal, Gradient_Vertical, Grid, Bordered, Checker, Gradient_Radial, Rect_Rounded }
+
+
     public class ColorTextureItem
     {
 
@@ -19,24 +22,23 @@ namespace AnimefanPostUPs_Tools.ColorTextureItem
         public int tiling;
         public Texture2D texture;
         public TexItemType type;
-
         private ColorTextureManager source;
 
 
-        public ColorTextureItem(ColorTextureManager source, ColorRGBA color_a, TexItemType type = TexItemType.Solid, ColorRGBA color_b = ColorRGBA.white, int tiling = 2)
+
+
+        public ColorTextureItem(ColorTextureManager source, ColorRGBA color_a, TexItemType type = TexItemType.Solid, ColorRGBA color_b = ColorRGBA.white, int modifier = 2)
         {
 
             this.source = source;
             this.type = type;
-            this.tiling = tiling;
+            this.tiling = modifier;
             this.color_a = color_a;
             this.color_b = color_b;
 
             generateTexture();
 
             source.Register(this);
-
-
         }
 
         private static Color GetRGBA(ColorRGBA color)
@@ -88,7 +90,7 @@ namespace AnimefanPostUPs_Tools.ColorTextureItem
                 texture.Apply();
 
             }
-            else if (type == TexItemType.Grid)
+            else if (type == TexItemType.Checker)
             {
                 //Draw Grid
                 texture = new Texture2D(tiling, tiling);
@@ -102,6 +104,104 @@ namespace AnimefanPostUPs_Tools.ColorTextureItem
                 texture.filterMode = FilterMode.Point;
                 texture.Apply();
             }
+            else if (type == TexItemType.Grid)
+            {
+                //Draw Grid
+                texture = new Texture2D(tiling * 60, tiling * 60);
+
+                //fill the color_a
+                for (int y = 0; y < texture.height; y++)
+                    for (int x = 0; x < texture.width; x++)
+                    {
+                        texture.SetPixel(x, y, GetRGBA(color_a));
+                    }
+
+
+                for (int y = 0; y < texture.height; y++)
+                    for (int x = 0; x < texture.width; x++)
+                    {
+                        //Draw Thin Lines steps of 10 shiftet by 5
+                        if (x % 10 == 5 || y % 10 == 5)
+                        {
+                            texture.SetPixel(x, y, GetRGBA(color_b));
+                        }
+
+                    }
+                texture.filterMode = FilterMode.Point;
+                texture.Apply();
+            }
+            else if (type == TexItemType.Bordered)
+            {
+                //Draw Grid
+                texture = new Texture2D(tiling * 60, tiling * 60);
+
+                //fill the color_a
+                for (int y = 0; y < texture.height; y++)
+                    for (int x = 0; x < texture.width; x++)
+                    {
+                        texture.SetPixel(x, y, GetRGBA(color_a));
+                    }
+
+
+                for (int y = 0; y < texture.height; y++)
+                    for (int x = 0; x < texture.width; x++)
+                    {
+                        if (x < tiling || x > texture.width - tiling || y < tiling || y > texture.height - tiling)
+                        {
+                            texture.SetPixel(x, y, GetRGBA(color_b));
+                        }
+                    }
+                texture.filterMode = FilterMode.Point;
+                texture.Apply();
+            }
+            else if (type == TexItemType.Gradient_Radial)
+            {
+                //Draw Grid
+                texture = new Texture2D(tiling, tiling);
+
+                //Lerp based on the distance to the center
+                for (int y = 0; y < texture.height; y++)
+                    for (int x = 0; x < texture.width; x++)
+                    {
+                        float lerp = Vector2.Distance(new Vector2(x, y), new Vector2(texture.width / 2, texture.height / 2)) / (texture.width / 2)*0.75f;
+                        texture.SetPixel(x, y, Lerp(GetRGBA(color_a), GetRGBA(color_b), lerp));
+                    }
+
+                texture.Apply();
+            }
+            else if (type == TexItemType.Rect_Rounded)
+            {
+                //Draw Grid
+                texture = new Texture2D(tiling, tiling);
+
+                //Draw the line of a rectagle but with rounded corners
+                for (int y = 0; y < texture.height; y++)
+                    for (int x = 0; x < texture.width; x++)
+                    {
+                        if (x < tiling || x > texture.width - tiling || y < tiling || y > texture.height - tiling)
+                        {
+                            texture.SetPixel(x, y, GetRGBA(color_b));
+                        }
+                        else
+                        {
+                            if (x < tiling + 5 || x > texture.width - tiling - 5 || y < tiling + 5 || y > texture.height - tiling - 5)
+                            {
+                                texture.SetPixel(x, y, GetRGBA(color_b));
+                            }
+                            else
+                            {
+                                texture.SetPixel(x, y, GetRGBA(color_a));
+                            }
+                        }
+                    }
+
+                texture.Apply();
+            }
+
+
+
+
+
 
 
 
@@ -109,7 +209,7 @@ namespace AnimefanPostUPs_Tools.ColorTextureItem
 
             if (texture != null)
             {
-                if (type == TexItemType.Grid)
+                if (type == TexItemType.Checker || type == TexItemType.Grid || type == TexItemType.Bordered)
                 {
                     texture.filterMode = FilterMode.Point;
                     texture.Apply();
@@ -187,9 +287,25 @@ namespace AnimefanPostUPs_Tools.ColorTextureItem
             {
                 filename = "Gradient_V_" + color_a.ToString() + "_" + color_b.ToString() + "_" + tiling.ToString();
             }
+            else if (type == TexItemType.Checker)
+            {
+                filename = "Checker_" + color_a.ToString() + "_" + color_b.ToString() + "_" + tiling.ToString();
+            }         
             else if (type == TexItemType.Grid)
             {
                 filename = "Grid_" + color_a.ToString() + "_" + color_b.ToString() + "_" + tiling.ToString();
+            }
+            else if (type == TexItemType.Bordered)
+            {
+                filename = "Bordered_" + color_a.ToString() + "_" + color_b.ToString() + "_" + tiling.ToString();
+            }
+            else if (type == TexItemType.Gradient_Radial)
+            {
+                filename = "Gradient_Radial_" + color_a.ToString() + "_" + color_b.ToString() + "_" + tiling.ToString();
+            }
+            else if (type == TexItemType.Rect_Rounded)
+            {
+                filename = "Rect_Rounded_" + color_a.ToString() + "_" + color_b.ToString() + "_" + tiling.ToString();
             }
 
             return filename;

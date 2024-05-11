@@ -8,14 +8,32 @@ namespace AnimefanPostUPs_Tools.ColorTextureManager
     using System.IO;
     using AnimefanPostUPs_Tools.ColorTextureItem;
     using AnimefanPostUPs_Tools.SmartColorUtility;
-    using static AnimefanPostUPs_Tools.SmartColorUtility.ColorRGBA;
     using System;
 
 
     //Colormanager Class
     public class ColorTextureManager
-    {
+    { 
+        public class ColorTextureDummy
+        {
+            public ColorRGBA color_a=ColorRGBA.grayscale_032;
+            public ColorRGBA color_b=ColorRGBA.grayscale_032;
+            public int tiling=2; 
+            public TexItemType type=TexItemType.Solid;
 
+            public Texture2D LoadTexture(ColorTextureManager colormanager)
+            {
+                return colormanager.LoadTexture(this.type, this.color_a, this.color_b, this.tiling);
+            }
+
+            public ColorTextureDummy(TexItemType type, ColorRGBA color_a, ColorRGBA color_b, int tiling)
+            {
+                this.color_a = color_a;
+                this.type = type;
+                this.color_b = color_b;
+                this.tiling = tiling;
+            }
+        }
         public string CacheFolder = "Assets/AnimefansAssetManager/Editor/Textures_Internal/";
 
         public List<ColorTextureItem> textureElements = new List<ColorTextureItem>();

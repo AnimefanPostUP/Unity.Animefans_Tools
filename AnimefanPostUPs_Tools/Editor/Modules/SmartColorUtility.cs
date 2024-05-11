@@ -24,10 +24,73 @@ namespace AnimefanPostUPs_Tools.SmartColorUtility
         brightred = (255u << 24) | (150u << 16) | (150u << 8) | 255u,
         duskred = (80u << 24) | (0u << 16) | (0u << 8) | 255u,
         darkred = (40u << 24) | (0u << 16) | (0u << 8) | 255u,
+        greyred = (25u << 24) | (5u << 16) | (5u << 8) | 255u,
+        lightgreyred = (80u << 24) | (25u << 16) | (25u << 8) | 255u,
+
+        //Green shades
         green = (0u << 24) | (255u << 16) | (0u << 8) | 255u,
+        lightgreen = (90u << 24) | (255u << 16) | (90u << 8) | 255u,
+        brightgreen = (150u << 24) | (255u << 16) | (150u << 8) | 255u,
+        duskgreen = (0u << 24) | (80u << 16) | (0u << 8) | 255u,
+        darkgreen = (0u << 24) | (40u << 16) | (0u << 8) | 255u,
+        graygreen = (5u << 24) | (25u << 16) | (5u << 8) | 255u,    
+        lightgraygreen = (25u << 24) | (80u << 16) | (25u << 8) | 255u,
+
+
+
+
+    //Yellow Shades
         yellow = (255u << 24) | (255u << 16) | (0u << 8) | 255u,
+        lightyellow = (255u << 24) | (255u << 16) | (90u << 8) | 255u,
+        brightyellow = (255u << 24) | (255u << 16) | (150u << 8) | 255u,
+        duskyellow = (80u << 24) | (80u << 16) | (0u << 8) | 255u,
+        darkyellow = (40u << 24) | (40u << 16) | (0u << 8) | 255u,
+        grayyellow = (25u << 24) | (25u << 16) | (5u << 8) | 255u,  
+        lightgrayyellow = (80u << 24) | (80u << 16) | (25u << 8) | 255u,
+
+        //Orange
+
         orange = (255u << 24) | (128u << 16) | (0u << 8) | 255u,
+        lightorange = (255u << 24) | (160u << 16) | (90u << 8) | 255u,
+        brightorange = (255u << 24) | (192u << 16) | (150u << 8) | 255u,
+        duskorange = (80u << 24) | (40u << 16) | (0u << 8) | 255u,
+        darkorange = (40u << 24) | (20u << 16) | (0u << 8) | 255u,
+        greyorange = (25u << 24) | (12u << 16) | (5u << 8) | 255u,
+        lightgreyorange = (80u << 24) | (40u << 16) | (25u << 8) | 255u,
+
+        //purple
         purple = (128u << 24) | (0u << 16) | (128u << 8) | 255u,
+        lightpurple = (160u << 24) | (90u << 16) | (160u << 8) | 255u,
+        brightpurple = (192u << 24) | (150u << 16) | (192u << 8) | 255u,
+        duskpurple = (40u << 24) | (0u << 16) | (40u << 8) | 255u,
+        darkpurple = (20u << 24) | (0u << 16) | (20u << 8) | 255u,
+        greypurple = (12u << 24) | (5u << 16) | (12u << 8) | 255u,
+        lightgreypurple = (40u << 24) | (25u << 16) | (40u << 8) | 255u,
+
+
+
+        //Blue
+
+        blue = (0u << 24) | (0u << 16) | (255u << 8) | 255u,
+        lightblue = (90u << 24) | (90u << 16) | (255u << 8) | 255u,
+        brightblue = (150u << 24) | (150u << 16) | (255u << 8) | 255u,
+        duskblue = (0u << 24) | (0u << 16) | (80u << 8) | 255u,
+        darkblue = (0u << 24) | (0u << 16) | (40u << 8) | 255u,
+        grayblue = (5u << 24) | (5u << 16) | (25u << 8) | 255u,
+        lightgrayblue = (25u << 24) | (25u << 16) | (80u << 8) | 255u,
+
+        //Pink
+        pink = (255u << 24) | (0u << 16) | (255u << 8) | 255u,
+        lightpink = (255u << 24) | (90u << 16) | (255u << 8) | 255u,
+        brightpink = (255u << 24) | (150u << 16) | (255u << 8) | 255u,
+        duskpink = (80u << 24) | (0u << 16) | (80u << 8) | 255u,
+        darkpink = (40u << 24) | (0u << 16) | (40u << 8) | 255u,
+        greypink = (25u << 24) | (5u << 16) | (25u << 8) | 255u,
+        lightgreypink = (80u << 24) | (25u << 16) | (80u << 8) | 255u,
+
+
+
+
 
         //Non Colors
         white = (255u << 24) | (255u << 16) | (255u << 8) | 255u,

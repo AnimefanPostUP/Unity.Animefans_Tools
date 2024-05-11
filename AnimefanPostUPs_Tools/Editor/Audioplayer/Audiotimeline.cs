@@ -1,3 +1,5 @@
+
+
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,8 +10,6 @@ using System.Text;
 using System.Collections;
 using System.Reflection;
 using Unity.EditorCoroutines.Editor;
-using UnityEditor;
-using UnityEngine;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
@@ -23,8 +23,9 @@ using AnimefanPostUPs_Tools.ColorTextureItem;
 using AnimefanPostUPs_Tools.ColorTextureManager;
 using AnimefanPostUPs_Tools.GUI_LayoutElements;
 //get Texturetypes
-using static AnimefanPostUPs_Tools.ColorTextureItem.TexItemType;
-
+//using AnimefanPostUPs_Tools.ColorTextureItem.TexItemType;
+using AnimefanPostUPs_Tools.MP3Reader;
+using AnimefanPostUPs_Tools.WavReader;
 
 public class Audiotimeline : EditorWindow
 {
@@ -32,22 +33,19 @@ public class Audiotimeline : EditorWindow
     {
         return SmartColorUtility.GetRGBA(color);
     }
+
     //clip slot
     const string CacheFolder = "Assets/AnimefanPostUPs-Tools/AnimefanPostUPs_Tools/Editor/Textures_Internal/";
     public AudioClip audioClip;
-
     public string filename = "Mix";
     public string targetfolder = "Assets/AnimTools/";
 
-    //Create color mgr
+
     private ColorTextureManager colorTextureManager = new ColorTextureManager();
     private TimelineView timelineView;
-
-    //Audio Manager
     private AudiotrackManager audioManager;
-
-    //Create Split
     public Splitviewer splitviewer = new Splitviewer();
+    public DropdownMenu dropdownMenu;
 
     //Create window
     [MenuItem("Animtools/Audio Timeline")]
@@ -62,6 +60,116 @@ public class Audiotimeline : EditorWindow
         init_audiomanager();
         //Init color texture manager
         colorTextureManager.CacheFolder = CacheFolder;
+        dropdownMenu = new DropdownMenu("Mainmenu", colorTextureManager, new Vector2(5, 5));
+        setDropdownTextures(dropdownMenu);
+        dropdownMenu.AddItem("Save", () => { Save(); });
+        dropdownMenu.AddItem("Save New", () => { SaveNew(); });
+        dropdownMenu.AddItem("Load From", () => { LoadFrom(); });
+        dropdownMenu.AddItem("Quick Backup", () => { SaveBackup(); });
+        dropdownMenu.AddItem("Animationsynch", false);
+
+    }
+
+    //function to save formatted to current folder
+
+
+    //Function to open File Save Dialog to execute Saving of the Timeline Json
+    public void SaveBackup()
+    {
+        //Check if folder exists
+        if (!Directory.Exists(targetfolder))
+            targetfolder = EditorUtility.OpenFolderPanel("Select Project Folder", targetfolder, "");
+
+        audioManager.formattedSave(targetfolder, filename);
+        dropdownMenu.isOpen = false;
+    }
+
+    //LoadFrom function to load Json from a file using a file dialog
+    public void LoadFrom()
+    {
+        string path = EditorUtility.OpenFilePanel("Load Timeline", Application.dataPath, "json");
+        if (path.Length > 0)
+        {
+            //Check if file exists
+            if (File.Exists(path))
+                audioManager.LoadJson(path);
+
+            //set the current filename to the loaded file
+            filename = Path.GetFileNameWithoutExtension(path);
+
+            //set the folder
+            targetfolder = Path.GetDirectoryName(path);
+        }
+        dropdownMenu.isOpen = false;
+    }
+
+    //Save button that saves to the current folder with the current filename
+    public void Save()
+    {
+        //Check if folder exists
+        if (!Directory.Exists(targetfolder))
+        {
+            targetfolder = EditorUtility.OpenFolderPanel("Select Project Folder", targetfolder, "");
+        }
+
+
+        if (File.Exists(targetfolder + "/" + filename + ".json"))
+        {
+            //Open dialog for yes or no
+            if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
+            {
+                audioManager.SaveJson(targetfolder + "/" + filename + ".json");
+            }
+        }
+        else
+        {
+            audioManager.SaveJson(targetfolder + "/" + filename + ".json");
+        }
+
+
+
+
+        dropdownMenu.isOpen = false;
+    }
+
+    //Save at function to open a file dialog and save the file at the selected location
+    public void SaveNew()
+    {
+        //Open file dialog and ask if overwrite
+        string path = EditorUtility.SaveFilePanel("Save Timeline", targetfolder, filename, "json");
+        if (path.Length > 0)
+        {
+            if (File.Exists(path))
+            {
+                //Open dialog for yes or no
+                if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
+                {
+                    audioManager.SaveJson(path);
+                    filename = Path.GetFileNameWithoutExtension(path);
+                    targetfolder = Path.GetDirectoryName(path);
+                }
+            }
+            else
+            {
+                audioManager.SaveJson(path);
+                filename = Path.GetFileNameWithoutExtension(path);
+                targetfolder = Path.GetDirectoryName(path);
+            }
+        }
+        dropdownMenu.isOpen = false;
+    }
+
+    void setDropdownTextures(DropdownMenu menu)
+    {
+        menu.itemButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightred, ColorRGBA.grayscale_025, 8);
+        menu.itemButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.grayscale_025, ColorRGBA.none, 8);
+        menu.itemButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_025, 8);
+
+        menu.mainButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 32);
+        menu.mainButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
+        menu.mainButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_064, 8);
+
+        menu.backgroundTexture = new ColorTextureManager.ColorTextureDummy(TexItemType.Bordered, ColorRGBA.grayscale_032, ColorRGBA.grayscale_016, 8);
     }
 
     void init_audiomanager()
@@ -100,6 +208,18 @@ public class Audiotimeline : EditorWindow
     private void OnGUI()
     {
 
+        //Create box with the size of the window hovering in the background
+        Rect windowRect = new Rect(0, 0, position.width, position.height);
+        //repaint if Rect contains mouse position
+
+        if (windowRect.Contains(Event.current.mousePosition))
+        {
+            Repaint();
+        }
+
+
+        dropdownMenu.checkMouseEvents(Event.current);
+
         //Check if even is control and scrollwheel
         if (Event.current.type == EventType.ScrollWheel && (Event.current.control || Event.current.alt))
         {
@@ -122,8 +242,12 @@ public class Audiotimeline : EditorWindow
 
         DrawTimelineUI(position.width - splitviewer.splitPosition);
         GUILayout.EndHorizontal();
-
         DrawSidePanel(splitviewer.splitPosition);
+
+        //Draw the dropdown
+        dropdownMenu.Draw(Event.current, new Vector2((splitviewer.splitPosition / 8 * 6), 25));
+
+
     }
 
     public void DrawTimelineUI(float widthTimeline)
@@ -140,11 +264,14 @@ public class Audiotimeline : EditorWindow
 
     private void DrawSidePanel(float widthSidePanel)
     {
+
+
         GUILayout.BeginVertical();
         //Scrollview vertical
-
-        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(widthSidePanel));
         EditorGUI.DrawRect(new Rect(0, 0, widthSidePanel, position.height), GetRGBA(ColorRGBA.grayscale_032));
+        GUILayout.Space(45); //Spacer for Dropdown
+        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(widthSidePanel));
+
 
         int halfWidth = (int)(widthSidePanel - 20);
 
@@ -155,7 +282,7 @@ public class Audiotimeline : EditorWindow
         //Set background gradient
         buttonStyle.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
         //set highlight gradient
-        buttonStyle.hover.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.brightred, ColorRGBA.red, 16);
+        buttonStyle.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
         //Bold font when hover
         buttonStyle.hover.textColor = Color.white;
         //Create button style
@@ -167,7 +294,7 @@ public class Audiotimeline : EditorWindow
         //Set background gradient
         buttonStyletab.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
         //set highlight gradient
-        buttonStyletab.hover.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.brightred, ColorRGBA.red, 16);
+        buttonStyletab.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
         //Bold font when hover
         buttonStyletab.hover.textColor = Color.white;
         //Create button style
@@ -175,12 +302,12 @@ public class Audiotimeline : EditorWindow
 
         //Create button style
         GUIStyle buttonStyleicon = new GUIStyle(GUI.skin.box);
-        buttonStyleicon.fixedWidth =25;
+        buttonStyleicon.fixedWidth = 25;
         buttonStyleicon.fixedHeight = 40;
         //Set background gradient
         buttonStyleicon.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
         //set highlight gradient
-        buttonStyleicon.hover.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.brightred, ColorRGBA.red, 16);
+        buttonStyleicon.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
         //Bold font when hover
         buttonStyleicon.hover.textColor = Color.white;
         //Create button style
@@ -200,21 +327,14 @@ public class Audiotimeline : EditorWindow
         //Set background gradient
         buttonStyle3.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
         //set highlight gradient
-        buttonStyle3.hover.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.brightred, ColorRGBA.red, 16);
+        buttonStyle3.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
         //Bold font when hover
         buttonStyle3.hover.textColor = Color.white;
 
 
-        //audioClip = EditorGUILayout.ObjectField("", audioClip, typeof(AudioClip), false, GUILayout.Width(100)) as AudioClip;
-        //Call//Unity field for folder
-        if (audioManager.audioTracks.Count > 0)
-        {
-            GUILayout.Label("Audio Tracks:", GUILayout.Width(halfWidth), GUILayout.Height(15));
-        }
-        else
-        {
-            GUILayout.Label("No Audio Tracks", GUILayout.Width(halfWidth), GUILayout.Height(15));
-        }
+
+
+
         //Warning Message if path is invalid
         if (!Directory.Exists(targetfolder))
         {
@@ -231,6 +351,9 @@ public class Audiotimeline : EditorWindow
         GUILayout.BeginHorizontal(GUILayout.Width(50));
         //Vertical
         GUILayout.BeginVertical();
+
+        //30 unity spacer
+
         //loop through all audio tracks
         foreach (var track in audioManager.audioTracks)
         {
@@ -260,7 +383,7 @@ public class Audiotimeline : EditorWindow
             GUIContent removeIcon = EditorGUIUtility.IconContent("d_P4_DeletedLocal"); // Replace with your icon
             GUIContent reloadIcon = EditorGUIUtility.IconContent("d_RotateTool"); // Replace with your icon
             GUIContent clampIcon = EditorGUIUtility.IconContent("d_AudioMixerSnapshot Icon"); // Replace with your icon
-   
+
 
             if (GUILayout.Button(removeIcon, buttonStyleicon))
             {
@@ -277,7 +400,7 @@ public class Audiotimeline : EditorWindow
                 track.initTime = 0;
             }
 
-           
+
 
 
             GUILayout.EndHorizontal();
@@ -378,29 +501,35 @@ public class Audiotimeline : EditorWindow
             EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
         }
         GUILayout.Space(5);
-        //Button to select json file
-        if (GUILayout.Button("Select Json", buttonStyle3))
-        {
-            string path = EditorUtility.OpenFilePanel("Select Json", targetfolder, "json");
-            if (path.Length > 0)
-            {
-                //Set the path and filename
-                targetfolder = Path.GetDirectoryName(path);
-                filename = Path.GetFileNameWithoutExtension(path);
-            }
-        }
-        GUILayout.Space(5);
-        if (GUILayout.Button("Try Find Json", buttonStyle3))
-        {
-            audioManager.checkForJson(targetfolder, filename);
-        }
 
-        GUILayout.Space(5);
 
         //Create File
         if (GUILayout.Button("Render Wavefile", buttonStyle3))
         {
             audioManager.createMix(targetfolder, filename);
+        }
+
+        //Render Wavefile At
+        if (GUILayout.Button("Render Wavefile At", buttonStyle3))
+        {
+            //Open file dialog and ask if overwrite
+            string path = EditorUtility.SaveFilePanel("Save Wavefile", targetfolder, filename, "wav");
+            if (path.Length > 0)
+            {
+                //if file exists
+                if (File.Exists(path))
+                {
+                    //Open dialog for yes or no
+                    if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
+                    {
+                        audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
+                    }
+                }
+                else
+                {
+                    audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
+                }
+            }
         }
 
 
@@ -571,7 +700,7 @@ public class TimelineView
 
         //Draw gray background 
         //EditorGUI.DrawRect(new Rect(0, 0, maxTime*100, trackHeight * trackCount), GetRGBA(ColorRGBA.grayscale_016));
-        GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, timelinePosition_Offset.y, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 2)));
+        GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, timelinePosition_Offset.y, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 10)));
 
         timelinePosition = GUILayout.BeginScrollView(timelinePosition, GUILayout.Width((int)(maxTime * 10) * timelinezoom.x), GUILayout.Height(trackCount * (trackHeight * 2 + 2)));
         GUILayout.BeginHorizontal(GUILayout.Width(maxTime * timelinezoom.x));
@@ -685,9 +814,6 @@ public class TimelineView
                 , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.white }, fontStyle = FontStyle.Bold, fontSize = 14 }
                 );
             }
-
-
-
         }
 
 
@@ -806,33 +932,20 @@ public class AudiotrackManager
         byte[][] mixedData = MixAudioData();
         CreateWaveFile(mixedData, filePath, filename + ".wav", targetSampleRate, targetChannels, targetBitDepth);
 
-        AudioData audioData = new AudioData
-        {
-            ClipPaths = new string[audioTracks.Count],
-            InitTimes = new float[audioTracks.Count],
-            OutputFilePath = filePath,
-            OutputFileName = filename
-        };
+        // Reload the Folder
+        AssetDatabase.Refresh();
+    }
 
-        for (int i = 0; i < audioTracks.Count; i++)
-        {
-            audioData.ClipPaths[i] = AssetDatabase.GetAssetPath(audioTracks[i].clip);
-            audioData.InitTimes[i] = audioTracks[i].initTime;
-        }
+    //Autosave
+    public void formattedSave(string filePath, string filename)
+    {
 
-        // Store clips in json
-        string json = JsonUtility.ToJson(audioData);
-
-        // Write the Json File
-        File.WriteAllText(filePath + "/" + filename + ".json", json);
-
-
-        //Get date and time
         string date = DateTime.Now.ToString("yyyy-MM-dd_HH-mm");
+        SaveJson(filePath + "/" + date + "_" + filename + "_.json");
+    }
 
-        // Save copy
-        File.WriteAllText(filePath + "/" + date + "_" + filename + "_.json", json);
-
+    public void autocleanup(string filePath, string filename)
+    {
         // Delete the one with the oldest date if there's more than 5
         // Get all files in the directory
         string[] files = Directory.GetFiles(filePath, "*.json");
@@ -864,12 +977,35 @@ public class AudiotrackManager
                 File.Delete(file);
             }
         }
+    }
+
+    public void SaveJson(string filePath)
+    {
+
+        AudioData audioData = new AudioData
+        {
+            ClipPaths = new string[audioTracks.Count],
+            InitTimes = new float[audioTracks.Count],
+            OutputFilePath = filePath,
+            OutputFileName = Path.GetFileNameWithoutExtension(filePath)
+        };
+
+        for (int i = 0; i < audioTracks.Count; i++)
+        {
+            audioData.ClipPaths[i] = AssetDatabase.GetAssetPath(audioTracks[i].clip);
+            audioData.InitTimes[i] = audioTracks[i].initTime;
+        }
+
+        // Store clips in json
+        string json = JsonUtility.ToJson(audioData);
 
         // Write the Json File
-        File.WriteAllText(filePath + "/" + filename + ".json", json);
+        File.WriteAllText(filePath, json);
 
-        // Reload the Folder
-        AssetDatabase.Refresh();
+
+        // Write the Json File
+        File.WriteAllText(filePath, json);
+
     }
 
     public int getMixLength(int channel)
@@ -1176,7 +1312,7 @@ public class AudioTrack
 
 
     public float[][] audioCurve; //channel, sample
-    //Previewimage
+                                 //Previewimage
     public Texture2D previewImage;
     public int curveResolution = 250;
 
@@ -1450,16 +1586,16 @@ public class AudioTrack
         //Check for File extension
         if (Path.GetExtension(absolutePath) == ".wav")
         {
-            header = ReadWavHeader(fileData);
-            audioBytes = GetAudioDataFromWav(fileData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
+            header = WavReader.ReadWavHeader(fileData);
+            audioBytes = WavReader.GetAudioDataFromWav(fileData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
             ReportAudioData(audioBytes, "Read WAV Audio Bytes");
         }
         else if (Path.GetExtension(absolutePath) == ".mp3")
         {
-            header = ReadMp3Header(absolutePath);
-            byte[] newWavData = GetAudioDataFromMp3(absolutePath);
-            header = ReadWavHeader(newWavData);
-            audioBytes = GetAudioDataFromWav(newWavData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
+            header = MP3Reader.ReadMp3Header(absolutePath);
+            byte[] newWavData = MP3Reader.GetAudioDataFromMp3(absolutePath);
+            header = WavReader.ReadWavHeader(newWavData);
+            audioBytes = WavReader.GetAudioDataFromWav(newWavData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
             ReportAudioData(audioBytes, "Read MP3 Audio Bytes");
         }
 
@@ -1672,164 +1808,6 @@ public class AudioTrack
     }
 
     //Readers
-    public Dictionary<string, int> ReadWavHeader(byte[] fileData)
-    {
-        using (var stream = new MemoryStream(fileData))
-        using (var reader = new BinaryReader(stream))
-        {
-            // Read "RIFF" header
-            string riff = new string(reader.ReadChars(4));
-            if (riff != "RIFF")
-            {
-                throw new Exception("Not a WAV file - no RIFF header.");
-            }
 
-            // Skip next 4 bytes (file size)
-            reader.ReadInt32();
-
-            // Read "WAVE" identifier
-            string wave = new string(reader.ReadChars(4));
-            if (wave != "WAVE")
-            {
-                throw new Exception("Not a WAV file - no WAVE identifier.");
-            }
-
-            // Read chunks until "fmt " chunk is found
-            string chunkId;
-            int chunkSize;
-            do
-            {
-                chunkId = new string(reader.ReadChars(4));
-                chunkSize = reader.ReadInt32();
-                if (chunkId != "fmt ")
-                {
-                    reader.ReadBytes(chunkSize); // Skip chunk data
-                }
-            } while (chunkId != "fmt ");
-
-            // Read audio format information
-            short audioFormat = reader.ReadInt16();
-            short numChannels = reader.ReadInt16();
-            int sampleRate = reader.ReadInt32();
-            int byteRate = reader.ReadInt32();
-            short blockAlign = reader.ReadInt16();
-            short bitsPerSample = reader.ReadInt16();
-
-            Dictionary<string, int> header = new Dictionary<string, int>
-        {
-            { "Channels", numChannels },
-            { "SampleRate", sampleRate },
-            { "ByteRate", byteRate },
-            { "BlockAlign", blockAlign },
-            { "BitsPerSample", bitsPerSample }
-        };
-
-            return header;
-        }
-    }
-
-    public byte[] GetAudioDataFromWav(byte[] wavFile, double audioLength, int byteDepth, int sampleRate, int channels)
-    {
-        // Calculate the size of the audio data
-        int dataSize = (int)Math.Round(audioLength * sampleRate * byteDepth * channels);
-
-        // Check if the calculated size is valid
-        if (dataSize <= 0 || dataSize > wavFile.Length)
-        {
-            throw new Exception("Invalid audio data size.");
-        }
-
-        // Copy the audio data to a new array
-        byte[] audioData = new byte[dataSize];
-        Array.Copy(wavFile, wavFile.Length - dataSize, audioData, 0, dataSize);
-
-        return audioData;
-    }
-    public byte[] GetAudioDataFromMp3(string filePath)
-    {
-        /*
-        using (var reader = new NAudio.Wave.Mp3FileReader(filePath))
-        using (var pcmStream = new NAudio.Wave.WaveFormatConversionStream(new NAudio.Wave.WaveFormat(44100, 2), reader))
-        {
-            var data = new byte[pcmStream.Length];
-            int totalBytesRead = 0;
-            while (totalBytesRead < data.Length)
-            {
-                totalBytesRead += pcmStream.Read(data, totalBytesRead, data.Length - totalBytesRead);
-            }
-
-            
-
-            // Check the number of channels and sample rate
-            int channels = pcmStream.WaveFormat.Channels;
-            int sampleRate = pcmStream.WaveFormat.SampleRate;
-            Console.WriteLine($"Channels: {channels}, Sample Rate: {sampleRate}");
-
-*/
-
-        //store as tmp.wav in the CacheFolder and read it as bytes
-        ConvertMp3ToWav(filePath, Application.temporaryCachePath + "/tmp.wav");
-
-        //return the bytes
-        byte[] data = File.ReadAllBytes(Application.temporaryCachePath + "/tmp.wav");
-        return data;
-    }
-
-
-    public void ConvertMp3ToWav(string mp3FilePath, string wavFilePath)
-    {
-        using (var reader = new NAudio.Wave.Mp3FileReader(mp3FilePath))
-        using (var writer = new NAudio.Wave.WaveFileWriter(wavFilePath, reader.WaveFormat))
-        {
-            byte[] buffer = new byte[reader.WaveFormat.AverageBytesPerSecond * 4];
-            int bytesRead;
-            while ((bytesRead = reader.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                writer.Write(buffer, 0, bytesRead);
-            }
-        }
-    }
-    public Dictionary<string, int> ReadMp3Header(string filePath)
-    {
-        using (var reader = new NAudio.Wave.Mp3FileReader(filePath))
-        {
-            var format = reader.Mp3WaveFormat;
-
-            int bitsPerSample = 0;
-            if (reader.WaveFormat.Encoding == NAudio.Wave.WaveFormatEncoding.Pcm)
-            {
-                bitsPerSample = reader.WaveFormat.BitsPerSample;
-            }
-
-            Dictionary<string, int> header = new Dictionary<string, int>
-    {
-        { "Channels", format.Channels },
-        { "SampleRate", format.SampleRate },
-        { "ByteRate", format.AverageBytesPerSecond },
-        { "BlockAlign", format.AverageBytesPerSecond*format.Channels },
-        { "BitsPerSample", bitsPerSample }
-    };
-
-            return header;
-        }
-    }
-
-
-    //Writers
-    public void WriteWavFile(string filePath, int sampleRate, int channels, int bitsPerSample, int durationInSeconds)
-    {
-        using (var writer = new WaveFileWriter(filePath, WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, channels)))
-        {
-            double amplitude = 0.25 * short.MaxValue;
-            double frequency = 1000;
-
-            int samples = sampleRate * channels * durationInSeconds;
-            for (int n = 0; n < samples; n++)
-            {
-                float sample = (float)(amplitude * Math.Sin((2 * Math.PI * frequency * n) / sampleRate));
-                writer.WriteSample(sample);
-            }
-        }
-    }
 
 }
