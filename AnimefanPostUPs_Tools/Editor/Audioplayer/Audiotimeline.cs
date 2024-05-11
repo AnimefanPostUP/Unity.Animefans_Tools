@@ -78,22 +78,22 @@ public class Audiotimeline : EditorWindow
 
     public enum SampleRate
     {
-        _8000 = 8000,
-        _16000 = 16000,
-        _32000 = 32000,
-        _44100 = 44100,
-        _48000 = 48000,
-        _96000 = 96000
+        _8000Hz = 8000,
+        _16000Hz = 16000,
+        _32000Hz = 32000,
+        _44100Hz = 44100,
+        _48000Hz = 48000,
+        _96000Hz = 96000
     }
 
     public enum BitDepth
     {
-        _8 = 8,
-        _16 = 16,
-        _24 = 24,
-        _32 = 32,
-        _48 = 48,
-        _64 = 64
+        _8bit = 8,
+        _16bit = 16,
+        _24bit = 24,
+        _32bit = 32,
+        _48bit = 48,
+        _64bit = 64
     }
 
 
@@ -144,57 +144,176 @@ public class Audiotimeline : EditorWindow
         //Scrollview vertical
 
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(widthSidePanel));
-        EditorGUI.DrawRect(new Rect(0, 0, widthSidePanel, position.height), GetRGBA(ColorRGBA.grayscale_064));
+        EditorGUI.DrawRect(new Rect(0, 0, widthSidePanel, position.height), GetRGBA(ColorRGBA.grayscale_032));
 
         int halfWidth = (int)(widthSidePanel - 20);
 
         //Create button style
-        GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
+        GUIStyle buttonStyle = new GUIStyle(GUI.skin.box);
         buttonStyle.fixedWidth = widthSidePanel - 10;
         buttonStyle.fixedHeight = 25;
+        //Set background gradient
+        buttonStyle.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
+        //set highlight gradient
+        buttonStyle.hover.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.brightred, ColorRGBA.red, 16);
+        //Bold font when hover
+        buttonStyle.hover.textColor = Color.white;
+        //Create button style
 
         //Create button style
-        GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.button);
-        buttonStyle.fixedWidth = widthSidePanel - 10;
-        buttonStyle.fixedHeight = 25;
+        GUIStyle buttonStyletab = new GUIStyle(GUI.skin.box);
+        buttonStyletab.fixedWidth = widthSidePanel - 5;
+        buttonStyletab.fixedHeight = 55;
+        //Set background gradient
+        buttonStyletab.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
+        //set highlight gradient
+        buttonStyletab.hover.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.brightred, ColorRGBA.red, 16);
+        //Bold font when hover
+        buttonStyletab.hover.textColor = Color.white;
+        //Create button style
 
-        audioClip = EditorGUILayout.ObjectField("", audioClip, typeof(AudioClip), false, GUILayout.Width(100)) as AudioClip;
+
+        //Create button style
+        GUIStyle buttonStyleicon = new GUIStyle(GUI.skin.box);
+        buttonStyleicon.fixedWidth =25;
+        buttonStyleicon.fixedHeight = 40;
+        //Set background gradient
+        buttonStyleicon.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
+        //set highlight gradient
+        buttonStyleicon.hover.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.brightred, ColorRGBA.red, 16);
+        //Bold font when hover
+        buttonStyleicon.hover.textColor = Color.white;
+        //Create button style
+
+        GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.box);
+        buttonStyle2.fixedWidth = widthSidePanel - 10;
+        buttonStyle2.fixedHeight = 25;
+        buttonStyle2.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.darkred, ColorRGBA.duskred, 16);
+        //Remove label padding and margin on the right
+        buttonStyle2.margin.right = 0;
+        buttonStyle2.padding.right = 0;
+
+        //General button style
+        GUIStyle buttonStyle3 = new GUIStyle(GUI.skin.label);
+        buttonStyle3.fixedWidth = widthSidePanel - 10;
+        buttonStyle3.fixedHeight = 25;
+        //Set background gradient
+        buttonStyle3.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
+        //set highlight gradient
+        buttonStyle3.hover.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.brightred, ColorRGBA.red, 16);
+        //Bold font when hover
+        buttonStyle3.hover.textColor = Color.white;
+
+
+        //audioClip = EditorGUILayout.ObjectField("", audioClip, typeof(AudioClip), false, GUILayout.Width(100)) as AudioClip;
         //Call//Unity field for folder
-
-        //Buttons to toggle bool variable in audiomanager
-        if (GUILayout.Button("Auto Update Mix", GUILayout.Width(130)))
+        if (audioManager.audioTracks.Count > 0)
         {
-            audioManager.autobuild = !audioManager.autobuild;
+            GUILayout.Label("Audio Tracks:", GUILayout.Width(halfWidth), GUILayout.Height(15));
         }
+        else
+        {
+            GUILayout.Label("No Audio Tracks", GUILayout.Width(halfWidth), GUILayout.Height(15));
+        }
+        //Warning Message if path is invalid
+        if (!Directory.Exists(targetfolder))
+        {
+            GUILayout.Label("Invalid Path", GUILayout.Width(halfWidth), GUILayout.Height(15));
+            //button to set a folder
+            if (GUILayout.Button("Set Output Folder", buttonStyle3))
+            {
+                targetfolder = EditorUtility.OpenFolderPanel("Select Folder", targetfolder, "");
+            }
+        }
+
+
+
+        GUILayout.BeginHorizontal(GUILayout.Width(50));
+        //Vertical
+        GUILayout.BeginVertical();
+        //loop through all audio tracks
+        foreach (var track in audioManager.audioTracks)
+        {
+            //Horizontal
+            GUILayout.BeginHorizontal(
+                //draw a box
+                buttonStyletab
+            );
+
+            //Write 100width label with name
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(track.clip.name, GUILayout.Width(60));
+
+            //Inputfield for init time
+
+            float oldinitTime = track.initTime;
+            track.initTime = EditorGUILayout.FloatField("", track.initTime, GUILayout.Width(50));
+            GUILayout.EndHorizontal();
+
+
+            //reload the audio data if the init time has changed
+            if (Mathf.Abs(oldinitTime - track.initTime) > 0.001f)
+            {
+                track.LoadAudioData();
+            }
+            // Icons for buttons
+            GUIContent removeIcon = EditorGUIUtility.IconContent("d_P4_DeletedLocal"); // Replace with your icon
+            GUIContent reloadIcon = EditorGUIUtility.IconContent("d_RotateTool"); // Replace with your icon
+            GUIContent clampIcon = EditorGUIUtility.IconContent("d_AudioMixerSnapshot Icon"); // Replace with your icon
+   
+
+            if (GUILayout.Button(removeIcon, buttonStyleicon))
+            {
+                audioManager.removeAudioTrack(track);
+            }
+
+            if (GUILayout.Button(reloadIcon, buttonStyleicon))
+            {
+                track.LoadAudioData();
+            }
+
+            if (GUILayout.Button(clampIcon, buttonStyleicon))
+            {
+                track.initTime = 0;
+            }
+
+           
+
+
+            GUILayout.EndHorizontal();
+        }
+
+        GUILayout.EndVertical();
+
+
+        GUILayout.EndHorizontal();
+
+        //Spacer
+        GUILayout.Space(20);
 
         //Field to Set the Name
         //label
         string oldfilename = filename;
-        GUILayout.Label("Filename:", GUILayout.Width(halfWidth));
+        GUILayout.Label("Filename/Path:", GUILayout.Width(halfWidth));
         filename = EditorGUILayout.TextField("", filename, GUILayout.Width(halfWidth));
-
-
 
 
         string oldfolder = targetfolder;
         targetfolder = EditorGUILayout.TextField("", targetfolder, GUILayout.Width(halfWidth));
-        if (GUILayout.Button("Select", GUILayout.Width(halfWidth)))
+        if (GUILayout.Button("Set Output Folder", buttonStyle3))
         {
             targetfolder = EditorUtility.OpenFolderPanel("Select Folder", targetfolder, "");
         }
 
-        if (GUILayout.Button("Try Find Json", GUILayout.Width(halfWidth)))
-        {
-            audioManager.checkForJson(targetfolder, filename);
-        }
-
+        //30 spacer
+        GUILayout.Space(30);
 
 
 
 
         void CreateEnumButton<T>(T enumValue) where T : Enum
         {
-            if (GUILayout.Button(enumValue.ToString().TrimStart('_'), buttonStyle))
+            if (GUILayout.Button(enumValue.ToString().TrimStart('_') + "", buttonStyle))
             {
                 if (typeof(T) == typeof(SampleRate))
                 {
@@ -208,53 +327,83 @@ public class Audiotimeline : EditorWindow
             }
         }
 
+        GUILayout.Label("Target Settings:", GUILayout.Width(halfWidth));
+
         SampleRate sampleRate = (SampleRate)audioManager.targetSampleRate;
         BitDepth bitDepth = (BitDepth)audioManager.targetBitDepth;
-
-        GUILayout.Label("Sample Rate: " + audioManager.targetSampleRate);
-        sampleRate = (SampleRate)EditorGUILayout.EnumPopup("", sampleRate, GUILayout.Width(halfWidth));
+        sampleRate = (SampleRate)EditorGUILayout.EnumPopup("", sampleRate, buttonStyle2);
         audioManager.targetSampleRate = (int)sampleRate;
 
-        GUILayout.Label("Bit Depth: " + audioManager.targetBitDepth);
-        bitDepth = (BitDepth)EditorGUILayout.EnumPopup("", bitDepth, GUILayout.Width(halfWidth));
+        GUILayout.Space(5);
+
+        bitDepth = (BitDepth)EditorGUILayout.EnumPopup("", bitDepth, buttonStyle2);
         audioManager.targetBitDepth = (int)bitDepth;
+
+        GUILayout.Space(5);
 
         //Debug timeline variabled ALL
         //Debug.Log("Timeline: " + timelineView.maxTime + " Tracks: " + audioManager.audioTracks.Count + " Track Height: " + timelineView.trackHeight + " Position: " + timelineView.timelinePosition + " Zoom: " + timelineView.timelinezoom);
 
-        GUILayout.Label("Channelcount: " + audioManager.targetChannels, GUILayout.Width(halfWidth));
-
-        GUILayout.BeginHorizontal(GUILayout.Width(halfWidth));
         //Create 2 Toggling buttons for 1 or 2 channels
-        if (GUILayout.Button("1", buttonStyle2))
+        if (GUILayout.Button("Current:  " + (audioManager.targetChannels == 1 ? "MONO" : "STEREO"), buttonStyle3))
         {
-            audioManager.targetChannels = 1;
+            if (audioManager.targetChannels == 1)
+            {
+                audioManager.targetChannels = 2;
+            }
+            else
+                audioManager.targetChannels = 1;
+
         }
-        if (GUILayout.Button("2", buttonStyle2))
+
+        //Spacer 30
+        GUILayout.Space(30);
+
+
+        GUILayout.Label("Functions", GUILayout.Width(halfWidth));
+
+
+        //Buttons to toggle bool variable in audiomanager
+        if (GUILayout.Button("Auto Update Mix: " + (audioManager.autobuild ? "ON" : "OFF"), buttonStyle3))
         {
-            audioManager.targetChannels = 2;
+            audioManager.autobuild = !audioManager.autobuild;
         }
-        GUILayout.EndHorizontal();
-
-
-
-
-        GUILayout.BeginHorizontal(GUILayout.Width(50));
+        GUILayout.Space(5);
         //Focus the folder
-        if (GUILayout.Button("Find", buttonStyle2))
+        if (GUILayout.Button("Ping Outputfolder", buttonStyle3))
         {
             //Focus in project window
             //Get relative path
             string relativepath = targetfolder.Replace(Application.dataPath, "Assets");
             EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
         }
+        GUILayout.Space(5);
+        //Button to select json file
+        if (GUILayout.Button("Select Json", buttonStyle3))
+        {
+            string path = EditorUtility.OpenFilePanel("Select Json", targetfolder, "json");
+            if (path.Length > 0)
+            {
+                //Set the path and filename
+                targetfolder = Path.GetDirectoryName(path);
+                filename = Path.GetFileNameWithoutExtension(path);
+            }
+        }
+        GUILayout.Space(5);
+        if (GUILayout.Button("Try Find Json", buttonStyle3))
+        {
+            audioManager.checkForJson(targetfolder, filename);
+        }
+
+        GUILayout.Space(5);
+
         //Create File
-        if (GUILayout.Button("CREATE MIX", buttonStyle2))
+        if (GUILayout.Button("Render Wavefile", buttonStyle3))
         {
             audioManager.createMix(targetfolder, filename);
         }
 
-        GUILayout.EndHorizontal();
+
 
         if (audioClip != null)
         {
@@ -263,84 +412,8 @@ public class Audiotimeline : EditorWindow
             audioManager.reloadAudioData();
             audioClip = null;
         }
-        GUILayout.BeginHorizontal(GUILayout.Width(50));
 
 
-        //Vertical
-        GUILayout.BeginVertical();
-        //loop through all audio tracks
-        foreach (var track in audioManager.audioTracks)
-        {
-            //Horizontal
-            GUILayout.BeginHorizontal();
-
-            //Write 100width label with name
-            GUILayout.Label(track.clip.name, GUILayout.Width(25));
-
-            //Inputfield for init time
-
-            float oldinitTime = track.initTime;
-            track.initTime = EditorGUILayout.FloatField("", track.initTime, GUILayout.Width(25));
-
-            //reload the audio data if the init time has changed
-            if (Mathf.Abs(oldinitTime - track.initTime) > 0.001f)
-            {
-                track.LoadAudioData();
-            }
-            //button to remove track
-            if (GUILayout.Button("X", GUILayout.Width(widthSidePanel / 12)))
-            {
-                audioManager.removeAudioTrack(track);
-            }
-
-            //button to load audio data
-            if (GUILayout.Button("Reload", GUILayout.Width(widthSidePanel / 4)))
-            {
-                track.LoadAudioData();
-            }
-
-            //button to load audio data
-            if (GUILayout.Button("Clamp", GUILayout.Width(widthSidePanel / 4)))
-            {
-                //set Track inittime to 0
-                track.initTime = 0;
-            }
-
-
-            //Button to print the first 200 values of audioCurve
-            if (GUILayout.Button("C", GUILayout.Width(widthSidePanel / 4)))
-            {
-                for (int i = 0; i < 200; i++)
-                {
-                    if (i < track.audioCurve[0].Length)
-                    {
-                        Debug.Log("Curve: " + track.audioCurve[0][i] + " " + track.audioCurve[1][i]);
-                    }
-                }
-
-                //Debug the min and max
-                float min = 10000;
-                float max = -10000;
-                for (int i = 0; i < track.audioCurve.Length; i++)
-                {
-                    if (track.audioCurve[0][i] < min) min = track.audioCurve[0][i];
-                    if (track.audioCurve[0][i] > max) max = track.audioCurve[0][i];
-
-
-                }
-
-                Debug.Log("Min: " + min + " Max: " + max);
-
-            }
-
-
-            GUILayout.EndHorizontal();
-        }
-
-        GUILayout.EndVertical();
-
-
-        GUILayout.EndHorizontal();
 
 
         //End Scrollview
@@ -697,9 +770,9 @@ public class AudiotrackManager
     public class AudioData
     {
         public string[] ClipPaths;
-        public float[] InitTimes ;
-        public string OutputFilePath ;
-        public string OutputFileName ;
+        public float[] InitTimes;
+        public string OutputFilePath;
+        public string OutputFileName;
     }
 
     //Load Json
@@ -731,7 +804,7 @@ public class AudiotrackManager
         //Load all audio data
         //reloadAudioData();
         byte[][] mixedData = MixAudioData();
-        CreateWaveFile(mixedData, filePath, filename+ ".wav", targetSampleRate, targetChannels, targetBitDepth);
+        CreateWaveFile(mixedData, filePath, filename + ".wav", targetSampleRate, targetChannels, targetBitDepth);
 
         AudioData audioData = new AudioData
         {
