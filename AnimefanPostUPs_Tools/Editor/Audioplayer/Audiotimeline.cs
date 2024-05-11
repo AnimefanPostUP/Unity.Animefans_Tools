@@ -656,7 +656,15 @@ public class Audiotimeline : EditorWindow
         string path = targetfolder + "/" + "LiveMixTemp" + ".wav";
         //get relative path
         string relativepath = path.Replace(Application.dataPath, "Assets");
+
+        //cut to the lastes "Assets" folder string using index of
+        if(relativepath.IndexOf("Assets") > 0)
+        relativepath = relativepath.Substring(relativepath.IndexOf("Assets"));
+
+
         AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(relativepath);
+
+
         return clip;
     }
 
@@ -734,6 +742,9 @@ public class Audiotimeline : EditorWindow
             audioManager.autobuild = false;
 
             firstTime = true;
+
+            timeStopped();
+            isPlaying = false;
         }
 
         //Create box with the size of the window hovering in the background
@@ -853,7 +864,7 @@ public class Audiotimeline : EditorWindow
         GUILayout.BeginVertical();
 
         //30 unity spacer
-        AudioTrack todelet=null;
+        AudioTrack todelet = null;
         //loop through all audio tracks
         foreach (var track in audioManager.audioTracks)
         {
@@ -1091,6 +1102,7 @@ public class TimelineView
                 timelinePosition_Offset.x = 0;
                 timelinePosition_Offset.y = 0;
                 doRepaint = true;
+
             }
 
 
