@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using NAudio;
 using NAudio.Wave;
 
+
 //import colors and guilayouts from AnimefanPostUPs-Tools
 using AnimefanPostUPs_Tools.SmartColorUtility;
 using AnimefanPostUPs_Tools.ColorTextureItem;
@@ -27,8 +28,154 @@ using AnimefanPostUPs_Tools.GUI_LayoutElements;
 using AnimefanPostUPs_Tools.MP3Reader;
 using AnimefanPostUPs_Tools.WavReader;
 
+public class CustomPopup : EditorWindow
+{
+
+    public enum SampleRate
+    {
+        _8000Hz = 8000,
+        _16000Hz = 16000,
+        _32000Hz = 32000,
+        _44100Hz = 44100,
+        _48000Hz = 48000,
+        _96000Hz = 96000
+    }
+
+    public enum BitDepth
+    {
+        _8bit = 8,
+        _16bit = 16,
+        _24bit = 24,
+        _32bit = 32,
+        _48bit = 48,
+        _64bit = 64
+    }
+
+    private int samplerate;
+    private int bitrate;
+    private int channels;
+    private Action<int, int, int> callback;
+
+    private ColorTextureManager colorTextureManager = new ColorTextureManager();
+
+    public static void ShowWindow(Action<int, int, int> callback, int samplerate = 0, int bitrate = 0, int channels = 0)
+    {
+        var window = GetWindow<CustomPopup>("Set Values");
+        window.callback = callback;
+        window.samplerate = samplerate;
+        window.bitrate = bitrate;
+        window.channels = channels;
+    }
+
+    //On Enable and Disable setup the color texture manager
+    private void OnEnable()
+    {
+        colorTextureManager.CacheFolder = "Assets/AnimefanPostUPs-Tools/AnimefanPostUPs_Tools/Editor/Textures_Internal/";
+    }
+
+    private void OnDisable()
+    {
+        colorTextureManager.Unload();
+    }
+
+    private void OnGUI()
+    {
+
+        //Create box with the size of the window hovering in the background
+        Rect windowRect = new Rect(0, 0, position.width, position.height);
+        //repaint if Rect contains mouse position
+
+        if (windowRect.Contains(Event.current.mousePosition))
+        {
+            Repaint();
+        }
+
+        //Draw Gradient Background using a texture
+        GUI.DrawTexture(new Rect(0, 0, position.width, position.height), colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_032, ColorRGBA.grayscale_016, 128));
+
+        GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.box);
+        buttonStyle2.fixedWidth = position.width - 10;
+        buttonStyle2.fixedHeight = 25;
+        buttonStyle2.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.darkred, ColorRGBA.duskred, 16);
+        buttonStyle2.margin.right = 0;
+        buttonStyle2.padding.right = 0;
+
+        void CreateEnumButton<T>(T enumValue) where T : Enum
+        {
+            if (GUILayout.Button(enumValue.ToString().TrimStart('_') + "", buttonStyle2))
+            {
+                if (typeof(T) == typeof(SampleRate))
+                {
+                    samplerate = (int)(object)enumValue;
+                }
+                else if (typeof(T) == typeof(BitDepth))
+                {
+                    bitrate = (int)(object)enumValue;
+                }
+                //audioManager.reloadAudioData();
+            }
+        }
+
+        GUILayout.Label("Target Settings:", GUILayout.Width(position.width - 10));
+
+        SampleRate sampleRate = (SampleRate)samplerate;
+        BitDepth bitDepth = (BitDepth)bitrate;
+        sampleRate = (SampleRate)EditorGUILayout.EnumPopup("", sampleRate, buttonStyle2);
+        samplerate = (int)sampleRate;
+
+        GUILayout.Space(5);
+
+        bitDepth = (BitDepth)EditorGUILayout.EnumPopup("", bitDepth, buttonStyle2);
+        bitrate = (int)bitDepth;
+
+        GUILayout.Space(5);
+
+        //Debug timeline variabled ALL
+        //Debug.Log("Timeline: " + timelineView.maxTime + " Tracks: " + audioManager.audioTracks.Count + " Track Height: " + timelineView.trackHeight + " Position: " + timelineView.timelinePosition + " Zoom: " + timelineView.timelinezoom);
+
+        //Create 2 Toggling buttons for 1 or 2 channels
+        if (GUILayout.Button("Current:  " + (channels == 1 ? "MONO" : "STEREO"), buttonStyle2))
+        {
+            if (channels == 1)
+            {
+                channels = 2;
+            }
+            else
+                channels = 1;
+
+        }
+
+        //Spacer 30
+        GUILayout.Space(30);
+
+
+        GUILayout.Label("Functions", GUILayout.Width(position.width - 10));
+
+        /*
+            //Buttons to toggle bool variable in audiomanager
+            if (GUILayout.Button("Auto Update Mix: " + (audioManager.autobuild ? "ON" : "OFF"), buttonStyle3))
+            {
+                audioManager.autobuild = !audioManager.autobuild;
+            }
+
+            GUILayout.Space(5);
+            */
+
+        //Focus the folder
+        if (GUILayout.Button("OK", buttonStyle2))
+        {
+            callback?.Invoke(samplerate, bitrate, channels);
+            Close();
+        }
+
+
+    }
+}
+
+
 public class Audiotimeline : EditorWindow
 {
+
     private static Color GetRGBA(ColorRGBA color)
     {
         return SmartColorUtility.GetRGBA(color);
@@ -46,6 +193,9 @@ public class Audiotimeline : EditorWindow
     private AudiotrackManager audioManager;
     public Splitviewer splitviewer = new Splitviewer();
     public DropdownMenu dropdownMenu;
+    public float lastTime = 0;
+    public bool isPlaying = false;
+    bool firstTime = true;
 
     //Create window
     [MenuItem("Animtools/Audio Timeline")]
@@ -62,18 +212,132 @@ public class Audiotimeline : EditorWindow
         colorTextureManager.CacheFolder = CacheFolder;
         dropdownMenu = new DropdownMenu("Mainmenu", colorTextureManager, new Vector2(5, 5));
         setDropdownTextures(dropdownMenu);
-        dropdownMenu.AddItem("Save", () => { Save(); });
-        dropdownMenu.AddItem("Save New", () => { SaveNew(); });
-        dropdownMenu.AddItem("Load From", () => { LoadFrom(); });
-        dropdownMenu.AddItem("Quick Backup", () => { SaveBackup(); });
+        dropdownMenu.AddItem("New", () => { New(); });
+        dropdownMenu.AddItem("Load Json", () => { LoadFrom(); });
+        dropdownMenu.AddItem("Quick Save", () => { Save(); });
+        dropdownMenu.AddItem("Save As", () => { SaveAt(); });
+        dropdownMenu.AddItem("Create Backup", () => { SaveBackup(); });
+        dropdownMenu.AddItem("Quick Render", () => { Render(); });
+        dropdownMenu.AddItem("Render As", () => { RenderWavAs(); });
+        dropdownMenu.AddItem("Audiosettings", () => { setRendersettings(); });
         dropdownMenu.AddItem("Animationsynch", false);
 
     }
 
-    //function to save formatted to current folder
+    //function to Load new Json
+    public void New()
+    {
+
+        //Ask if they are sure, then ask a second time if they want to save the current project if theres any tracks
+        if (EditorUtility.DisplayDialog("Load New Json", "Are you sure you want to create a new Json?", "Yes", "No"))
+        {
+            if (audioManager.audioTracks.Count > 0)
+            {
+                if (EditorUtility.DisplayDialog("Save Current Project", "Do you want to save the current project?", "Yes", "No"))
+                {
+                    SaveAt();
+                }
+            }
+
+            //open file dialog to create a new json
+            string path = EditorUtility.SaveFilePanel("Save Timeline", Application.dataPath, "NewTimeline", "json");
+            if (path.Length > 0)
+            {
+                //save the target folder and filename
+                filename = Path.GetFileNameWithoutExtension(path);
+                targetfolder = Path.GetDirectoryName(path);
+
+                //Clear the audio manager
+                audioManager = new AudiotrackManager();
+                timelineView = new TimelineView(1000, 50, audioManager);
+            }
+
+        }
+
+    }
+
+    public void setRendersettings()
+    {
+
+        int existingSampleRate = audioManager.targetSampleRate;
+        int existingBitDepth = audioManager.targetBitDepth;
+        int existingChannels = audioManager.targetChannels;
 
 
-    //Function to open File Save Dialog to execute Saving of the Timeline Json
+        CustomPopup.ShowWindow((samplerate, bitrate, channels) =>
+        {
+            audioManager.renderSettings(samplerate, bitrate, channels);
+        }, existingSampleRate, existingBitDepth, existingChannels);
+
+    }
+
+
+    public void PingOutputFolder()
+    {
+        //Focus in project window
+        //Get relative path
+        string relativepath = targetfolder.Replace(Application.dataPath, "Assets");
+        EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
+    }
+
+    public void RenderWavAs()
+    {
+        //Create File
+        audioManager.createMix(targetfolder, filename);
+
+        //Open file dialog and ask if overwrite
+        string path = EditorUtility.SaveFilePanel("Save Wavefile", targetfolder, filename, "wav");
+        if (path.Length > 0)
+        {
+            //if file exists
+            if (File.Exists(path))
+            {
+                //Open dialog for yes or no
+                if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
+                {
+                    audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
+                }
+            }
+            else
+            {
+                audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
+            }
+        }
+    }
+
+    //Render function to render the audio mix
+    public void Render()
+    {
+        if (audioManager.audioTracks.Count > 0)
+        {
+            //Check if folder exists
+            if (!Directory.Exists(targetfolder))
+            {
+                targetfolder = EditorUtility.OpenFolderPanel("Select Project Folder", targetfolder, "");
+            }
+
+            //Create File
+
+            //If file exists
+            if (File.Exists(targetfolder + "/" + filename + ".wav"))
+            {
+                //Open dialog for yes or no
+                if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
+                {
+                    audioManager.createMix(targetfolder, filename);
+                }
+            }
+            else
+            {
+                audioManager.createMix(targetfolder, filename);
+            }
+        }
+    }
+
+    public void SelectOutputFolder()
+    {
+        targetfolder = EditorUtility.OpenFolderPanel("Select Folder", targetfolder, "");
+    }
     public void SaveBackup()
     {
         //Check if folder exists
@@ -133,7 +397,7 @@ public class Audiotimeline : EditorWindow
     }
 
     //Save at function to open a file dialog and save the file at the selected location
-    public void SaveNew()
+    public void SaveAt()
     {
         //Open file dialog and ask if overwrite
         string path = EditorUtility.SaveFilePanel("Save Timeline", targetfolder, filename, "json");
@@ -175,44 +439,308 @@ public class Audiotimeline : EditorWindow
     void init_audiomanager()
     {
         audioManager = new AudiotrackManager();
-        timelineView = new TimelineView(500, 50, audioManager);
+        timelineView = new TimelineView(1000, 50, audioManager);
     }
 
     //on disable
     private void OnDisable()
     {
+        colorTextureManager.Unload();
     }
 
 
-    public enum SampleRate
+
+    public Rect GetTimelineScaling()
     {
-        _8000Hz = 8000,
-        _16000Hz = 16000,
-        _32000Hz = 32000,
-        _44100Hz = 44100,
-        _48000Hz = 48000,
-        _96000Hz = 96000
+        var editor = typeof(Editor).Assembly;
+        var windowtype = editor.GetType("UnityEditor.AnimEditor");
+        var dopesheetmethod = windowtype.GetMethod("get_dopeSheetEditor", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+
+        var windows = Resources.FindObjectsOfTypeAll(windowtype);
+
+        foreach (var window in windows)
+        {
+            var obj = dopesheetmethod.Invoke(window, null);
+            var type = editor.GetType("UnityEditorInternal.DopeSheetEditor");
+
+            if (type == null) return new Rect();
+            var viewRect = type.GetProperty("shownArea", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+
+            return (Rect)viewRect.GetValue(obj, null);
+        }
+
+        return new Rect();
     }
 
-    public enum BitDepth
+    public float GetPropertyWidth()
     {
-        _8bit = 8,
-        _16bit = 16,
-        _24bit = 24,
-        _32bit = 32,
-        _48bit = 48,
-        _64bit = 64
+        var editor = typeof(Editor).Assembly;
+        var windowtype = editor.GetType("UnityEditor.AnimEditor");
+        if (windowtype == null) return 5.0f;
+        var getWidthMethod = windowtype.GetMethod("get_hierarchyWidth", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+
+        var windowInstances = Resources.FindObjectsOfTypeAll(windowtype);
+
+        foreach (var windowInstance in windowInstances)
+        {
+            return (float)getWidthMethod.Invoke(windowInstance, null);
+        }
+
+        return 0;
     }
 
+    public float GetCurrentTime()
+    {
+        var editorAssembly = typeof(Editor).Assembly;
+        var animWindowStateType = editorAssembly.GetType("UnityEditorInternal.AnimationWindowState");
+
+        if (animWindowStateType == null)
+        {
+            return 0; // Return a default time if there's no AnimationWindowState
+        }
+
+        var timeProperty = animWindowStateType.GetProperty("currentTime", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+        var windowInstances = Resources.FindObjectsOfTypeAll(animWindowStateType);
+
+        foreach (var windowInstance in windowInstances)
+        {
+            return (float)timeProperty.GetValue(windowInstance, null);
+        }
+
+        return 0;
+    }
+
+    public bool IsAnimationPlaying()
+    {
+        var editorAssembly = typeof(Editor).Assembly;
+        var animWindowStateType = editorAssembly.GetType("UnityEditorInternal.AnimationWindowState");
+
+        if (animWindowStateType == null)
+        {
+            return false; // Return false if there's no AnimationWindowState
+        }
+
+        var playingProperty = animWindowStateType.GetProperty("playing", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+        var windowInstances = Resources.FindObjectsOfTypeAll(animWindowStateType);
+
+        foreach (var windowInstance in windowInstances)
+        {
+            return (bool)playingProperty.GetValue(windowInstance, null);
+        }
+
+        return false;
+    }
+
+    public static void PlayClip(AudioClip clip)
+    {
+        Assembly unityEditorAssembly = typeof(AudioImporter).Assembly;
+        Type audioUtilClass = unityEditorAssembly.GetType("UnityEditor.AudioUtil");
+
+        MethodInfo method = audioUtilClass.GetMethod(
+            "PlayPreviewClip",
+            BindingFlags.Static | BindingFlags.Public,
+            null,
+            new System.Type[] {
+                typeof(AudioClip), typeof(int), typeof(bool)
+        },
+        null
+        );
+
+        method.Invoke(
+            null,
+            new object[] {
+                clip, 0, false
+        }
+        );
+    }
+
+    public static void StopAllClips()
+    {
+        Assembly unityEditorAssembly = typeof(AudioImporter).Assembly;
+        Type audioUtilClass = unityEditorAssembly.GetType("UnityEditor.AudioUtil");
+        MethodInfo method = audioUtilClass.GetMethod(
+            "StopAllPreviewClips",
+            BindingFlags.Static | BindingFlags.Public
+            );
+
+        Debug.Log(audioUtilClass);
+
+        method.Invoke(
+            null,
+            null
+            );
+    }
+
+
+    public static void SetClipSamplePosition(AudioClip clip, int iSamplePosition)
+    {
+        Assembly unityEditorAssembly = typeof(AudioImporter).Assembly;
+        Type audioUtilClass = unityEditorAssembly.GetType("UnityEditor.AudioUtil");
+        MethodInfo method = audioUtilClass.GetMethod(
+            "SetPreviewClipSamplePosition",
+            BindingFlags.Static | BindingFlags.Public
+            );
+
+        method.Invoke(
+            null,
+            new object[] {
+                clip,
+                iSamplePosition
+        }
+        );
+    }
+
+    public void stopAudio()
+    {
+        StopAllClips();
+    }
+
+
+    private void timeStopped()
+    {
+        if (isPlaying)
+        {
+            isPlaying = false;
+            stopAudio();
+            Debug.Log("Stopped");
+        }
+    }
+
+    private void timeStarted()
+    {
+        if (!isPlaying)
+        {
+
+            AudioClip clip = getMixClip();
+            if (clip != null)
+            {
+                isPlaying = true;
+                PlayClip(clip);
+                SetClipSamplePosition(clip, (int)((clip.samples * (GetCurrentTime() / clip.length))));
+
+                Debug.Log("Playing");
+            }
+        }
+    }
+
+    private void timeChanged()
+    {
+        if (isPlaying)
+        {
+            StopAllClips();
+            AudioClip clip = getMixClip();
+            if (clip != null)
+            {
+                PlayClip(clip);
+                SetClipSamplePosition(clip, (int)((clip.samples * (GetCurrentTime() / clip.length))));
+
+                Debug.Log("Playing" + GetCurrentTime());
+            }
+            else
+            {
+                isPlaying = false;
+                Debug.Log("No Clip Found");
+            }
+        }
+    }
+
+    private AudioClip getMixClip()
+    {
+        if (firstTime)
+        {
+            firstTime = false;
+            audioManager.createMix(targetfolder, "LiveMixTemp");
+        }
+
+        //find LiveMixTemp.wav in the folderpath
+        string path = targetfolder + "/" + "LiveMixTemp" + ".wav";
+        //get relative path
+        string relativepath = path.Replace(Application.dataPath, "Assets");
+        AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(relativepath);
+        return clip;
+    }
 
     private void OnGUI()
     {
+        bool synch = dropdownMenu.getValue("Animationsynch");
+        //If aniamtion synch is on
+        if (synch)
+        {
+            //Check if the filepath is valid, if not open a folder dialog
+            if (!Directory.Exists(targetfolder))
+            {
+                targetfolder = EditorUtility.OpenFolderPanel("Select Project Folder", targetfolder, "");
+                //targetfolder is still not valid set the value to the default
+                if (!Directory.Exists(targetfolder))
+                {
+                    dropdownMenu.setValue("Animationsynch", false);
+                }
+            }
+
+            float currentTime = GetCurrentTime();
+
+
+
+            //Set timeline playback to the current time
+            timelineView.displayPlayback = true;
+            audioManager.autobuild = true;
+            timelineView.playbackPosition = currentTime;
+
+            //detect if the time has changed negative or not at all
+            if (currentTime == lastTime)
+            {
+                if (isPlaying != IsAnimationPlaying())
+                {
+                    if (isPlaying)
+                    {
+                        timeStopped();
+                    }
+                    else
+                    {
+                        timeStarted();
+                    }
+                }
+            }
+            else if (currentTime > lastTime)
+            {
+                timeStarted();
+            }
+            else if (currentTime < lastTime)
+            {
+                timeChanged();
+
+            }
+
+            lastTime = currentTime;
+
+
+            //set the splitviewer to the current position to the property width
+            splitviewer.splitPosition = GetPropertyWidth();
+
+            //Get the shown area of the animation window
+            Rect shownArea = GetTimelineScaling();
+
+            //set the position and timeline position to the shown area
+            float widthTimeline = position.width - splitviewer.splitPosition;
+
+            timelineView.timelinezoom = new Vector2((widthTimeline * 10) / (shownArea.width * 10), timelineView.timelinezoom.y);
+            timelineView.timelinePosition_Offset = new Vector2(((-shownArea.x * timelineView.timelinezoom.x)), timelineView.timelinePosition_Offset.y);
+
+        }
+        else
+        {
+            timelineView.displayPlayback = false;
+            //Disable autobuild
+            audioManager.autobuild = false;
+
+            firstTime = true;
+        }
 
         //Create box with the size of the window hovering in the background
         Rect windowRect = new Rect(0, 0, position.width, position.height);
         //repaint if Rect contains mouse position
 
-        if (windowRect.Contains(Event.current.mousePosition))
+        if (windowRect.Contains(Event.current.mousePosition) || synch)
         {
             Repaint();
         }
@@ -279,11 +807,8 @@ public class Audiotimeline : EditorWindow
         GUIStyle buttonStyle = new GUIStyle(GUI.skin.box);
         buttonStyle.fixedWidth = widthSidePanel - 10;
         buttonStyle.fixedHeight = 25;
-        //Set background gradient
         buttonStyle.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
-        //set highlight gradient
         buttonStyle.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
-        //Bold font when hover
         buttonStyle.hover.textColor = Color.white;
         //Create button style
 
@@ -291,32 +816,23 @@ public class Audiotimeline : EditorWindow
         GUIStyle buttonStyletab = new GUIStyle(GUI.skin.box);
         buttonStyletab.fixedWidth = widthSidePanel - 5;
         buttonStyletab.fixedHeight = 55;
-        //Set background gradient
         buttonStyletab.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
-        //set highlight gradient
         buttonStyletab.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
-        //Bold font when hover
         buttonStyletab.hover.textColor = Color.white;
-        //Create button style
 
 
         //Create button style
         GUIStyle buttonStyleicon = new GUIStyle(GUI.skin.box);
         buttonStyleicon.fixedWidth = 25;
         buttonStyleicon.fixedHeight = 40;
-        //Set background gradient
         buttonStyleicon.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
-        //set highlight gradient
         buttonStyleicon.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
-        //Bold font when hover
         buttonStyleicon.hover.textColor = Color.white;
-        //Create button style
 
         GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.box);
         buttonStyle2.fixedWidth = widthSidePanel - 10;
         buttonStyle2.fixedHeight = 25;
         buttonStyle2.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.darkred, ColorRGBA.duskred, 16);
-        //Remove label padding and margin on the right
         buttonStyle2.margin.right = 0;
         buttonStyle2.padding.right = 0;
 
@@ -332,28 +848,12 @@ public class Audiotimeline : EditorWindow
         buttonStyle3.hover.textColor = Color.white;
 
 
-
-
-
-        //Warning Message if path is invalid
-        if (!Directory.Exists(targetfolder))
-        {
-            GUILayout.Label("Invalid Path", GUILayout.Width(halfWidth), GUILayout.Height(15));
-            //button to set a folder
-            if (GUILayout.Button("Set Output Folder", buttonStyle3))
-            {
-                targetfolder = EditorUtility.OpenFolderPanel("Select Folder", targetfolder, "");
-            }
-        }
-
-
-
         GUILayout.BeginHorizontal(GUILayout.Width(50));
         //Vertical
         GUILayout.BeginVertical();
 
         //30 unity spacer
-
+        AudioTrack todelet=null;
         //loop through all audio tracks
         foreach (var track in audioManager.audioTracks)
         {
@@ -387,7 +887,7 @@ public class Audiotimeline : EditorWindow
 
             if (GUILayout.Button(removeIcon, buttonStyleicon))
             {
-                audioManager.removeAudioTrack(track);
+                todelet = track;
             }
 
             if (GUILayout.Button(reloadIcon, buttonStyleicon))
@@ -406,132 +906,27 @@ public class Audiotimeline : EditorWindow
             GUILayout.EndHorizontal();
         }
 
+        if (todelet != null)
+        {
+            audioManager.audioTracks.Remove(todelet);
+        }
+
         GUILayout.EndVertical();
 
 
         GUILayout.EndHorizontal();
 
-        //Spacer
-        GUILayout.Space(20);
 
-        //Field to Set the Name
-        //label
-        string oldfilename = filename;
-        GUILayout.Label("Filename/Path:", GUILayout.Width(halfWidth));
-        filename = EditorGUILayout.TextField("", filename, GUILayout.Width(halfWidth));
-
-
-        string oldfolder = targetfolder;
-        targetfolder = EditorGUILayout.TextField("", targetfolder, GUILayout.Width(halfWidth));
-        if (GUILayout.Button("Set Output Folder", buttonStyle3))
+        int index = targetfolder.IndexOf("Assets");
+        if (index >= 0)
         {
-            targetfolder = EditorUtility.OpenFolderPanel("Select Folder", targetfolder, "");
+            GUILayout.Label("\\" + targetfolder.Substring(index));
         }
+
+        GUILayout.Label("" + filename);
 
         //30 spacer
         GUILayout.Space(30);
-
-
-
-
-        void CreateEnumButton<T>(T enumValue) where T : Enum
-        {
-            if (GUILayout.Button(enumValue.ToString().TrimStart('_') + "", buttonStyle))
-            {
-                if (typeof(T) == typeof(SampleRate))
-                {
-                    audioManager.targetSampleRate = (int)(object)enumValue;
-                }
-                else if (typeof(T) == typeof(BitDepth))
-                {
-                    audioManager.targetBitDepth = (int)(object)enumValue;
-                }
-                audioManager.reloadAudioData();
-            }
-        }
-
-        GUILayout.Label("Target Settings:", GUILayout.Width(halfWidth));
-
-        SampleRate sampleRate = (SampleRate)audioManager.targetSampleRate;
-        BitDepth bitDepth = (BitDepth)audioManager.targetBitDepth;
-        sampleRate = (SampleRate)EditorGUILayout.EnumPopup("", sampleRate, buttonStyle2);
-        audioManager.targetSampleRate = (int)sampleRate;
-
-        GUILayout.Space(5);
-
-        bitDepth = (BitDepth)EditorGUILayout.EnumPopup("", bitDepth, buttonStyle2);
-        audioManager.targetBitDepth = (int)bitDepth;
-
-        GUILayout.Space(5);
-
-        //Debug timeline variabled ALL
-        //Debug.Log("Timeline: " + timelineView.maxTime + " Tracks: " + audioManager.audioTracks.Count + " Track Height: " + timelineView.trackHeight + " Position: " + timelineView.timelinePosition + " Zoom: " + timelineView.timelinezoom);
-
-        //Create 2 Toggling buttons for 1 or 2 channels
-        if (GUILayout.Button("Current:  " + (audioManager.targetChannels == 1 ? "MONO" : "STEREO"), buttonStyle3))
-        {
-            if (audioManager.targetChannels == 1)
-            {
-                audioManager.targetChannels = 2;
-            }
-            else
-                audioManager.targetChannels = 1;
-
-        }
-
-        //Spacer 30
-        GUILayout.Space(30);
-
-
-        GUILayout.Label("Functions", GUILayout.Width(halfWidth));
-
-
-        //Buttons to toggle bool variable in audiomanager
-        if (GUILayout.Button("Auto Update Mix: " + (audioManager.autobuild ? "ON" : "OFF"), buttonStyle3))
-        {
-            audioManager.autobuild = !audioManager.autobuild;
-        }
-        GUILayout.Space(5);
-        //Focus the folder
-        if (GUILayout.Button("Ping Outputfolder", buttonStyle3))
-        {
-            //Focus in project window
-            //Get relative path
-            string relativepath = targetfolder.Replace(Application.dataPath, "Assets");
-            EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
-        }
-        GUILayout.Space(5);
-
-
-        //Create File
-        if (GUILayout.Button("Render Wavefile", buttonStyle3))
-        {
-            audioManager.createMix(targetfolder, filename);
-        }
-
-        //Render Wavefile At
-        if (GUILayout.Button("Render Wavefile At", buttonStyle3))
-        {
-            //Open file dialog and ask if overwrite
-            string path = EditorUtility.SaveFilePanel("Save Wavefile", targetfolder, filename, "wav");
-            if (path.Length > 0)
-            {
-                //if file exists
-                if (File.Exists(path))
-                {
-                    //Open dialog for yes or no
-                    if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
-                    {
-                        audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
-                    }
-                }
-                else
-                {
-                    audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
-                }
-            }
-        }
-
 
 
         if (audioClip != null)
@@ -570,9 +965,12 @@ public class TimelineView
 
     public float mousePositionX = 0;
 
-    public float trackHeightOffset = 20;
+    public float trackHeightOffset = 52;
 
     AudiotrackManager audiotrackmgr;
+
+    public bool displayPlayback = false;
+    public float playbackPosition = 0;
 
     //String for Projectfile
 
@@ -608,7 +1006,8 @@ public class TimelineView
             //Mix the audio data
             if (audiotrackmgr.audioTracks.Count > 0 && amgr.autobuild)
             {
-                amgr.createMix(targetfolder, filename + ".wav");
+                //amgr.createMix(targetfolder, filename + ".wav");
+                amgr.createMix(targetfolder, "LiveMixTemp");
                 AssetDatabase.Refresh();
             }
         }
@@ -698,6 +1097,7 @@ public class TimelineView
         }
 
 
+
         //Draw gray background 
         //EditorGUI.DrawRect(new Rect(0, 0, maxTime*100, trackHeight * trackCount), GetRGBA(ColorRGBA.grayscale_016));
         GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, timelinePosition_Offset.y, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 10)));
@@ -707,6 +1107,8 @@ public class TimelineView
 
         GUIStyle boxstyle = new GUIStyle(GUI.skin.box);
         boxstyle.normal.background = colormgr.LoadTexture(TexItemType.Gradient_Horizontal, ColorRGBA.lightred, ColorRGBA.brightred, 32);
+
+
 
         //Draw a line for the timeline every 10 unitys
         for (int i = 0; i < maxTime; i++)
@@ -724,6 +1126,12 @@ public class TimelineView
                 //Draw Label with time
                 EditorGUI.DrawRect(new Rect(i * timelinezoom.x / 10, 0, 1, (trackHeight + 10) * (trackCount + 10)), GetRGBA(ColorRGBA.red));
             }
+        }
+
+        //Draw line on playbackPosition
+        if (displayPlayback)
+        {
+            EditorGUI.DrawRect(new Rect(playbackPosition * timelinezoom.x, 0, 2, (trackHeight + 10) * (trackCount + 10)), GetRGBA(ColorRGBA.orange));
         }
 
         //draw boxes for tracks
@@ -867,6 +1275,14 @@ public class AudiotrackManager
         }
     }
 
+    public void renderSettings(int samplerate, int bitrate, int channels)
+    {
+        targetSampleRate = samplerate;
+        targetBitDepth = bitrate;
+        targetChannels = channels;
+        reloadAudioData();
+    }
+
     //addAudiotrack
     public void addAudioTrack(AudioTrack track)
     {
@@ -926,7 +1342,6 @@ public class AudiotrackManager
 
     public void createMix(string filePath, string filename)
     {
-
         //Load all audio data
         //reloadAudioData();
         byte[][] mixedData = MixAudioData();
@@ -1808,6 +2223,11 @@ public class AudioTrack
     }
 
     //Readers
+
+
+
+
+
 
 
 }
