@@ -58,6 +58,10 @@ public class Audiotimeline : EditorWindow
     public bool isPlaying = false;
     bool firstTime = true;
 
+    bool change = false;
+
+    int changetime = 0;
+
     //Create window
     [MenuItem("Animtools/Audio Timeline")]
     public static void ShowWindow()
@@ -825,6 +829,8 @@ public class Audiotimeline : EditorWindow
 
         //30 unity spacer
         AudioTrack todelet = null;
+        int currentsystime = System.DateTime.Now.Second;
+        bool changetrigger = false;
         //loop through all audio tracks
         foreach (var track in audioManager.audioTracks)
         {
@@ -836,7 +842,10 @@ public class Audiotimeline : EditorWindow
             GUILayout.BeginHorizontal();
             //Write 100width label with name
             GUILayout.BeginHorizontal();
-            GUILayout.Label(track.clip.name, GUILayout.Width(60));
+            GUILayout.Label(track.clip.name, GUILayout.Width(
+                Mathf.Max(
+                widthSidePanel - 105, 5)
+            ));
 
             //Inputfield for init time
 
@@ -879,15 +888,27 @@ public class Audiotimeline : EditorWindow
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
+            float oldtargetgain = track.targetgain;
+
             track.targetgain = GUILayout.HorizontalSlider(track.targetgain, 0, 1, GUILayout.Width(widthSidePanel - 85));
             //Label with red background
-            float oldtargetgain = track.targetgain;
+
             GUILayout.Label(track.targetgain.ToString("0.00"), buttonStyle3);
 
             if (Mathf.Abs(oldtargetgain - track.targetgain) > 0.001f)
             {
                 if (audioManager.autobuild)
-                    track.LoadAudioData();
+                {
+                    if (!change)
+                    {
+                        //track.oldtargetgain = track.targetgain;
+                        changetime = System.DateTime.Now.Second;
+                        change = true;
+                    }
+
+                    changetrigger = true;
+
+                }
             }
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
@@ -905,7 +926,7 @@ public class Audiotimeline : EditorWindow
 
 
         GUILayout.EndHorizontal();
-
+        GUILayout.Space(15);
 
         int index = targetfolder.IndexOf("Assets");
         if (index >= 0)
@@ -916,7 +937,7 @@ public class Audiotimeline : EditorWindow
         GUILayout.Label("" + filename);
 
         //30 spacer
-        GUILayout.Space(30);
+        GUILayout.Space(15);
 
 
         if (audioClip != null)
@@ -928,16 +949,74 @@ public class Audiotimeline : EditorWindow
         }
 
 
+        //button to find the output folder
+        if (GUILayout.Button("Ping Folder", buttonStyle))
+        {
+            string relativepath = targetfolder.Replace(Application.dataPath, "Assets");
+
+            if (Directory.Exists(targetfolder))
+            {
+                //focus in project window
+                //check if file exists
+                if (File.Exists(targetfolder + "/" + filename + ".json"))
+                {
+                    //focus in project window
+                    EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
+                }
+            }
+        }
+
+        //button to find the file in the project window
+        if (GUILayout.Button("Ping Render", buttonStyle))
+        {
+            //get relative path
+            string relativepath = targetfolder.Replace(Application.dataPath, "Assets");
+
+            //check if path is valid
+
+
+            if (Directory.Exists(targetfolder))
+            {
+                //focus in project window
+                //check if file exists
+                if (File.Exists(targetfolder + "/" + filename + ".json"))
+                {
+                    //focus in project window
+                    EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath + "/" + filename + ".json"));
+                }
+            }
+        }
+
+        //Get current startup time 
+
+        if (change)
+        {
+            if (!changetrigger)
+            {
+                if (currentsystime > changetime + 1)
+                {
+                    audioManager.createMix(targetfolder, "LiveMixTemp");
+                    change = false;
+
+                }
+
+
+            }
+            else
+            {
+                changetime = currentsystime;
+            }
+
+        }
 
 
         //End Scrollview
         GUILayout.EndScrollView();
         GUILayout.EndVertical();
+
     }
 
-
 }
-
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //TIMELINE CLASS
 
@@ -1209,12 +1288,12 @@ public class TimelineView
 
             //Draw Image / Waveform
             if (audiotrackmgr.audioTracks[i].previewImage != null)
-                EditorGUI.DrawPreviewTexture(new Rect(_x, _y + 20, _width, _height - 20), audiotrackmgr.audioTracks[i].previewImage, null, ScaleMode.StretchToFill);
+                EditorGUI.DrawPreviewTexture(new Rect(_x, _y + 20, _width, Math.Max(_height - 20, 1)), audiotrackmgr.audioTracks[i].previewImage, null, ScaleMode.StretchToFill);
 
 
-            EditorGUI.LabelField(new Rect(_x + 5, _y, 20, 12), audiotrackmgr.audioTracks[i].clip.name
+            EditorGUI.LabelField(new Rect(_x + 2, _y, Math.Max(_width - 5, 1), 20), audiotrackmgr.audioTracks[i].clip.name
           //Make color black and bold
-          , new GUIStyle() { normal = new GUIStyleState() { textColor = GetRGBA(ColorRGBA.darkred) }, fontStyle = FontStyle.Bold, fontSize = 14 }
+          , new GUIStyle() { normal = new GUIStyleState() { textColor = GetRGBA(ColorRGBA.darkred) }, fontStyle = FontStyle.Bold, fontSize = 12, clipping = TextClipping.Clip }
           );
 
         }
@@ -1650,8 +1729,11 @@ public class AudiotrackManager
 
                 for (int j = 0; j < numTracks; j++)
                 {
+                    //check if the track 
+                    if (!(i+1<audiolines[ch][j].Length)){
                     short sample = BitConverter.ToInt16(audiolines[ch][j], i);
                     sum += sample;
+                    } else sum += 0;
                 }
 
                 short mixedSample = (short)(sum / numTracks);
@@ -1964,6 +2046,8 @@ public class AudioTrack
     public float targetgain = 0.7f;
 
     Dictionary<string, int> header;
+
+    public float oldtargetgain = 0;
 
 
     public float[][] audioCurve; //channel, sample
@@ -2665,7 +2749,7 @@ public class CustomPopup : EditorWindow
             GUILayout.Space(12);
 
             //setting for Targetgain
-            GUILayout.Label("Target Gain Input:", GUILayout.Width(position.width / 2 - 20));
+            GUILayout.Label("Modifier Gain Input:", GUILayout.Width(position.width / 2 - 20));
             //Splider
             targetgain_In = GUILayout.HorizontalSlider(targetgain_In, -1, 1, GUILayout.Width(position.width / 2 - 20));
         }
