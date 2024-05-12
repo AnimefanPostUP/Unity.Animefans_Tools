@@ -1730,7 +1730,7 @@ public class AudiotrackManager
                 for (int j = 0; j < numTracks; j++)
                 {
                     //check if the track 
-                    if (!(i+1<audiolines[ch][j].Length)){
+                    if ((i+1<audiolines[ch][j].Length)){
                     short sample = BitConverter.ToInt16(audiolines[ch][j], i);
                     sum += sample;
                     } else sum += 0;
