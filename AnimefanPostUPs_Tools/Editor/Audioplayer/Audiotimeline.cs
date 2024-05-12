@@ -982,7 +982,7 @@ public class Audiotimeline : EditorWindow
                 if (File.Exists(targetfolder + "/" + filename + ".wav"))
                 {
                     //focus in project window
-                    EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath + "/" + filename + ".json"));
+                    EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath + "/" + filename + ".wav"));
                 }
             }
         }
