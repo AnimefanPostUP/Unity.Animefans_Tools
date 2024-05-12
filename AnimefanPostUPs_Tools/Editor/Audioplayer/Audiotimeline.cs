@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 
 using NAudio;
 using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 
 //import colors and guilayouts from AnimefanPostUPs-Tools
@@ -28,149 +29,9 @@ using AnimefanPostUPs_Tools.GUI_LayoutElements;
 using AnimefanPostUPs_Tools.MP3Reader;
 using AnimefanPostUPs_Tools.WavReader;
 
-public class CustomPopup : EditorWindow
-{
 
-    public enum SampleRate
-    {
-        _8000Hz = 8000,
-        _16000Hz = 16000,
-        _32000Hz = 32000,
-        _44100Hz = 44100,
-        _48000Hz = 48000,
-        _96000Hz = 96000
-    }
-
-    public enum BitDepth
-    {
-        _8bit = 8,
-        _16bit = 16,
-        _24bit = 24,
-        _32bit = 32,
-        _48bit = 48,
-        _64bit = 64
-    }
-
-    private int samplerate;
-    private int bitrate;
-    private int channels;
-    private Action<int, int, int> callback;
-
-    private ColorTextureManager colorTextureManager = new ColorTextureManager();
-
-    public static void ShowWindow(Action<int, int, int> callback, int samplerate = 0, int bitrate = 0, int channels = 0)
-    {
-        var window = GetWindow<CustomPopup>("Set Values");
-        window.callback = callback;
-        window.samplerate = samplerate;
-        window.bitrate = bitrate;
-        window.channels = channels;
-    }
-
-    //On Enable and Disable setup the color texture manager
-    private void OnEnable()
-    {
-        colorTextureManager.CacheFolder = "Assets/AnimefanPostUPs-Tools/AnimefanPostUPs_Tools/Editor/Textures_Internal/";
-    }
-
-    private void OnDisable()
-    {
-        colorTextureManager.Unload();
-    }
-
-    private void OnGUI()
-    {
-
-        //Create box with the size of the window hovering in the background
-        Rect windowRect = new Rect(0, 0, position.width, position.height);
-        //repaint if Rect contains mouse position
-
-        if (windowRect.Contains(Event.current.mousePosition))
-        {
-            Repaint();
-        }
-
-        //Draw Gradient Background using a texture
-        GUI.DrawTexture(new Rect(0, 0, position.width, position.height), colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_032, ColorRGBA.grayscale_016, 128));
-
-        GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.box);
-        buttonStyle2.fixedWidth = position.width - 10;
-        buttonStyle2.fixedHeight = 25;
-        buttonStyle2.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.darkred, ColorRGBA.duskred, 16);
-        buttonStyle2.margin.right = 0;
-        buttonStyle2.padding.right = 0;
-
-        void CreateEnumButton<T>(T enumValue) where T : Enum
-        {
-            if (GUILayout.Button(enumValue.ToString().TrimStart('_') + "", buttonStyle2))
-            {
-                if (typeof(T) == typeof(SampleRate))
-                {
-                    samplerate = (int)(object)enumValue;
-                }
-                else if (typeof(T) == typeof(BitDepth))
-                {
-                    bitrate = (int)(object)enumValue;
-                }
-                //audioManager.reloadAudioData();
-            }
-        }
-
-        GUILayout.Label("Target Settings:", GUILayout.Width(position.width - 10));
-
-        SampleRate sampleRate = (SampleRate)samplerate;
-        BitDepth bitDepth = (BitDepth)bitrate;
-        sampleRate = (SampleRate)EditorGUILayout.EnumPopup("", sampleRate, buttonStyle2);
-        samplerate = (int)sampleRate;
-
-        GUILayout.Space(5);
-
-        bitDepth = (BitDepth)EditorGUILayout.EnumPopup("", bitDepth, buttonStyle2);
-        bitrate = (int)bitDepth;
-
-        GUILayout.Space(5);
-
-        //Debug timeline variabled ALL
-        //Debug.Log("Timeline: " + timelineView.maxTime + " Tracks: " + audioManager.audioTracks.Count + " Track Height: " + timelineView.trackHeight + " Position: " + timelineView.timelinePosition + " Zoom: " + timelineView.timelinezoom);
-
-        //Create 2 Toggling buttons for 1 or 2 channels
-        if (GUILayout.Button("Current:  " + (channels == 1 ? "MONO" : "STEREO"), buttonStyle2))
-        {
-            if (channels == 1)
-            {
-                channels = 2;
-            }
-            else
-                channels = 1;
-
-        }
-
-        //Spacer 30
-        GUILayout.Space(30);
-
-
-        GUILayout.Label("Functions", GUILayout.Width(position.width - 10));
-
-        /*
-            //Buttons to toggle bool variable in audiomanager
-            if (GUILayout.Button("Auto Update Mix: " + (audioManager.autobuild ? "ON" : "OFF"), buttonStyle3))
-            {
-                audioManager.autobuild = !audioManager.autobuild;
-            }
-
-            GUILayout.Space(5);
-            */
-
-        //Focus the folder
-        if (GUILayout.Button("OK", buttonStyle2))
-        {
-            callback?.Invoke(samplerate, bitrate, channels);
-            Close();
-        }
-
-
-    }
-}
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//CLass Header
 
 
 public class Audiotimeline : EditorWindow
@@ -204,12 +65,19 @@ public class Audiotimeline : EditorWindow
         GetWindow<Audiotimeline>("Audio Timeline");
     }
 
-    //On start
+
+    //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //Unity Calls
+
     private void OnEnable()
     {
         init_audiomanager();
         //Init color texture manager
+
+
         colorTextureManager.CacheFolder = CacheFolder;
+
+
         dropdownMenu = new DropdownMenu("Mainmenu", colorTextureManager, new Vector2(5, 5));
         setDropdownTextures(dropdownMenu);
         dropdownMenu.AddItem("New", () => { New(); });
@@ -222,7 +90,218 @@ public class Audiotimeline : EditorWindow
         dropdownMenu.AddItem("Audiosettings", () => { setRendersettings(); });
         dropdownMenu.AddItem("Animationsynch", false);
 
+        //Load the last folder and filename
+        string _targetfolder = PlayerPrefs.GetString("AudioTimelineFolder", targetfolder);
+        string _filename = PlayerPrefs.GetString("AudioTimelineFilename", filename);
+
+        bool checkFile = true;
+
+        //check if they are valid
+        if (Directory.Exists(_targetfolder))
+        {
+            targetfolder = _targetfolder;
+
+        }
+        else { checkFile = false; }
+
+        if (File.Exists(targetfolder + "/" + _filename + ".json"))
+        {
+            filename = _filename;
+        }
+        else { checkFile = false; }
+
+        if (checkFile)
+        {
+            audioManager.LoadJson(targetfolder + "/" + filename + ".json");
+        }
     }
+
+    private void OnDisable()
+    {
+        colorTextureManager.Unload();
+
+        //store the current folder and filename
+        PlayerPrefs.SetString("AudioTimelineFolder", targetfolder);
+        PlayerPrefs.SetString("AudioTimelineFilename", filename);
+    }
+
+
+    private void OnGUI()
+    {
+
+        //Audiologic
+        bool synch = dropdownMenu.getValue("Animationsynch");
+        playAudioLogic(synch);
+
+
+        //Repainter
+        Rect windowRect = new Rect(0, 0, position.width, position.height);
+        if (windowRect.Contains(Event.current.mousePosition) || synch)
+        {
+            Repaint();
+        }
+
+        //Dropdown
+        dropdownMenu.checkMouseEvents(Event.current);
+
+        //Timelinescrolling
+        if (Event.current.type == EventType.ScrollWheel && (Event.current.control || Event.current.alt))
+        {
+            timelineView.timelinezoom.x -= (Event.current.delta.y * 4);
+
+            //Clamp value between 1 and 1000
+            timelineView.timelinezoom.x = Mathf.Clamp(timelineView.timelinezoom.x, 1, 1000);
+
+            //use Event
+            Event.current.Use();
+            Repaint();
+        }
+
+
+        //Main Drawing
+        GUILayout.BeginHorizontal();
+        GUILayout.BeginVertical(GUILayout.Width(splitviewer.splitPosition));
+        GUILayout.EndVertical();
+
+        //Splitter Element
+        if (splitviewer.drawSplit(Event.current, position)) Repaint();
+
+        //UI
+        DrawTimelineUI(position.width - splitviewer.splitPosition);
+        GUILayout.EndHorizontal();
+        DrawSidePanel(splitviewer.splitPosition);
+
+        //Draw Dropdown (Fixed Position)
+        dropdownMenu.Draw(Event.current, new Vector2((splitviewer.splitPosition / 8 * 6), 25));
+        //Create a Button at fixed Position
+
+
+        Texture2D buttonTexture = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 8);
+        GUIStyle buttonStyle = new GUIStyle();
+        buttonStyle.normal.background = buttonTexture;
+        //Center content
+        buttonStyle.alignment = TextAnchor.MiddleCenter;
+        //White text
+        buttonStyle.normal.textColor = Color.white;
+
+        GUIContent buttonContent = EditorGUIUtility.IconContent("d_Profiler.Memory");
+
+        if (GUI.Button(new Rect((splitviewer.splitPosition / 8 * 6) + 7, 6, 25, 25), buttonContent, buttonStyle))
+        {
+            Render();
+        }
+
+    }
+
+    //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //INITS
+    void init_audiomanager()
+    {
+        audioManager = new AudiotrackManager();
+        timelineView = new TimelineView(1000, 50, audioManager);
+    }
+
+
+    void setDropdownTextures(DropdownMenu menu)
+    {
+        menu.itemButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightred, ColorRGBA.grayscale_025, 8);
+        menu.itemButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.grayscale_025, ColorRGBA.none, 8);
+        menu.itemButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_025, 8);
+
+        menu.mainButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 32);
+        menu.mainButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
+        menu.mainButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_064, 8);
+
+        menu.backgroundTexture = new ColorTextureManager.ColorTextureDummy(TexItemType.Bordered, ColorRGBA.grayscale_032, ColorRGBA.grayscale_016, 8);
+    }
+
+
+    //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //Logic for Audio Playback
+
+    void playAudioLogic(bool synch)
+    {
+        //If aniamtion synch is on
+        if (synch)
+        {
+            //Check if the filepath is valid, if not open a folder dialog
+            if (!Directory.Exists(targetfolder))
+            {
+                targetfolder = EditorUtility.OpenFolderPanel("Select Project Folder", targetfolder, "");
+                //targetfolder is still not valid set the value to the default
+                if (!Directory.Exists(targetfolder))
+                {
+                    dropdownMenu.setValue("Animationsynch", false);
+                }
+            }
+
+            float currentTime = GetCurrentTime();
+
+            //Set timeline playback to the current time
+            timelineView.displayPlayback = true;
+            audioManager.autobuild = true;
+            timelineView.playbackPosition = currentTime;
+
+            //detect if the time has changed negative or not at all
+            if (currentTime == lastTime)
+            {
+                if (isPlaying != IsAnimationPlaying())
+                {
+                    if (isPlaying)
+                    {
+                        timeStopped();
+                    }
+                    else
+                    {
+                        timeStarted();
+                    }
+                }
+            }
+            else if (currentTime > lastTime)
+            {
+                timeStarted();
+            }
+            else if (currentTime < lastTime)
+            {
+                timeChanged();
+
+            }
+
+            lastTime = currentTime;
+
+
+            //set the splitviewer to the current position to the property width
+            splitviewer.splitPosition = GetPropertyWidth();
+
+            //Get the shown area of the animation window
+            Rect shownArea = GetTimelineScaling();
+
+            //set the position and timeline position to the shown area
+            float widthTimeline = position.width - splitviewer.splitPosition;
+
+            timelineView.timelinezoom = new Vector2((widthTimeline * 10) / (shownArea.width * 10), timelineView.timelinezoom.y);
+            timelineView.timelinePosition_Offset = new Vector2(((-shownArea.x * timelineView.timelinezoom.x)), timelineView.timelinePosition_Offset.y);
+
+        }
+        else
+        {
+            timelineView.displayPlayback = false;
+            //Disable autobuild
+            audioManager.autobuild = false;
+
+            firstTime = true;
+
+            timeStopped();
+            isPlaying = false;
+        }
+    }
+
+
+
+
+    //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //Saving Functions / Popups
+
 
     //function to Load new Json
     public void New()
@@ -263,11 +342,25 @@ public class Audiotimeline : EditorWindow
         int existingBitDepth = audioManager.targetBitDepth;
         int existingChannels = audioManager.targetChannels;
 
+        //Normalization settings values
+        bool setting_doNormalizeInput = audioManager.setting_doNormalizeInput;
+        float setting_normalizeInput = audioManager.setting_normalizationFac_Input;
 
-        CustomPopup.ShowWindow((samplerate, bitrate, channels) =>
+        bool setting_doNormalizeOutput = audioManager.setting_doNormalizeOutput;
+        float setting_normalizeOutput = audioManager.setting_normalizationFac_Output;
+
+        float targetgain_In = audioManager.targetgain_In;
+        float targetgain_Out = audioManager.targetgain_Out;
+
+
+
+
+        CustomPopup.ShowWindow((samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out) =>
         {
-            audioManager.renderSettings(samplerate, bitrate, channels);
-        }, existingSampleRate, existingBitDepth, existingChannels);
+            audioManager.renderSettings(samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out);
+        }, existingSampleRate, existingBitDepth, existingChannels, setting_doNormalizeInput, setting_normalizeInput, setting_doNormalizeOutput, setting_normalizeOutput,
+        targetgain_In, targetgain_Out);
+
 
     }
 
@@ -423,32 +516,9 @@ public class Audiotimeline : EditorWindow
         dropdownMenu.isOpen = false;
     }
 
-    void setDropdownTextures(DropdownMenu menu)
-    {
-        menu.itemButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightred, ColorRGBA.grayscale_025, 8);
-        menu.itemButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.grayscale_025, ColorRGBA.none, 8);
-        menu.itemButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_025, 8);
 
-        menu.mainButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 32);
-        menu.mainButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
-        menu.mainButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_064, 8);
-
-        menu.backgroundTexture = new ColorTextureManager.ColorTextureDummy(TexItemType.Bordered, ColorRGBA.grayscale_032, ColorRGBA.grayscale_016, 8);
-    }
-
-    void init_audiomanager()
-    {
-        audioManager = new AudiotrackManager();
-        timelineView = new TimelineView(1000, 50, audioManager);
-    }
-
-    //on disable
-    private void OnDisable()
-    {
-        colorTextureManager.Unload();
-    }
-
-
+    //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //Unity Reflections
 
     public Rect GetTimelineScaling()
     {
@@ -510,6 +580,7 @@ public class Audiotimeline : EditorWindow
         return 0;
     }
 
+
     public bool IsAnimationPlaying()
     {
         var editorAssembly = typeof(Editor).Assembly;
@@ -530,6 +601,10 @@ public class Audiotimeline : EditorWindow
 
         return false;
     }
+
+    //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //Audio Utility Copy
+
 
     public static void PlayClip(AudioClip clip)
     {
@@ -589,6 +664,10 @@ public class Audiotimeline : EditorWindow
         }
         );
     }
+
+    //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //Timeline Audio Stopper/Starter/Changer
+
 
     public void stopAudio()
     {
@@ -658,8 +737,8 @@ public class Audiotimeline : EditorWindow
         string relativepath = path.Replace(Application.dataPath, "Assets");
 
         //cut to the lastes "Assets" folder string using index of
-        if(relativepath.IndexOf("Assets") > 0)
-        relativepath = relativepath.Substring(relativepath.IndexOf("Assets"));
+        if (relativepath.IndexOf("Assets") > 0)
+            relativepath = relativepath.Substring(relativepath.IndexOf("Assets"));
 
 
         AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(relativepath);
@@ -668,127 +747,8 @@ public class Audiotimeline : EditorWindow
         return clip;
     }
 
-    private void OnGUI()
-    {
-        bool synch = dropdownMenu.getValue("Animationsynch");
-        //If aniamtion synch is on
-        if (synch)
-        {
-            //Check if the filepath is valid, if not open a folder dialog
-            if (!Directory.Exists(targetfolder))
-            {
-                targetfolder = EditorUtility.OpenFolderPanel("Select Project Folder", targetfolder, "");
-                //targetfolder is still not valid set the value to the default
-                if (!Directory.Exists(targetfolder))
-                {
-                    dropdownMenu.setValue("Animationsynch", false);
-                }
-            }
-
-            float currentTime = GetCurrentTime();
-
-
-
-            //Set timeline playback to the current time
-            timelineView.displayPlayback = true;
-            audioManager.autobuild = true;
-            timelineView.playbackPosition = currentTime;
-
-            //detect if the time has changed negative or not at all
-            if (currentTime == lastTime)
-            {
-                if (isPlaying != IsAnimationPlaying())
-                {
-                    if (isPlaying)
-                    {
-                        timeStopped();
-                    }
-                    else
-                    {
-                        timeStarted();
-                    }
-                }
-            }
-            else if (currentTime > lastTime)
-            {
-                timeStarted();
-            }
-            else if (currentTime < lastTime)
-            {
-                timeChanged();
-
-            }
-
-            lastTime = currentTime;
-
-
-            //set the splitviewer to the current position to the property width
-            splitviewer.splitPosition = GetPropertyWidth();
-
-            //Get the shown area of the animation window
-            Rect shownArea = GetTimelineScaling();
-
-            //set the position and timeline position to the shown area
-            float widthTimeline = position.width - splitviewer.splitPosition;
-
-            timelineView.timelinezoom = new Vector2((widthTimeline * 10) / (shownArea.width * 10), timelineView.timelinezoom.y);
-            timelineView.timelinePosition_Offset = new Vector2(((-shownArea.x * timelineView.timelinezoom.x)), timelineView.timelinePosition_Offset.y);
-
-        }
-        else
-        {
-            timelineView.displayPlayback = false;
-            //Disable autobuild
-            audioManager.autobuild = false;
-
-            firstTime = true;
-
-            timeStopped();
-            isPlaying = false;
-        }
-
-        //Create box with the size of the window hovering in the background
-        Rect windowRect = new Rect(0, 0, position.width, position.height);
-        //repaint if Rect contains mouse position
-
-        if (windowRect.Contains(Event.current.mousePosition) || synch)
-        {
-            Repaint();
-        }
-
-
-        dropdownMenu.checkMouseEvents(Event.current);
-
-        //Check if even is control and scrollwheel
-        if (Event.current.type == EventType.ScrollWheel && (Event.current.control || Event.current.alt))
-        {
-            timelineView.timelinezoom.x -= (Event.current.delta.y * 4);
-
-            //Clamp value between 1 and 1000
-            timelineView.timelinezoom.x = Mathf.Clamp(timelineView.timelinezoom.x, 1, 1000);
-
-            //use Event
-            Event.current.Use();
-            Repaint();
-        }
-
-        GUILayout.BeginHorizontal();
-        GUILayout.BeginVertical(GUILayout.Width(splitviewer.splitPosition));
-
-        GUILayout.EndVertical();
-
-        if (splitviewer.drawSplit(Event.current, position)) Repaint();
-
-        DrawTimelineUI(position.width - splitviewer.splitPosition);
-        GUILayout.EndHorizontal();
-        DrawSidePanel(splitviewer.splitPosition);
-
-        //Draw the dropdown
-        dropdownMenu.Draw(Event.current, new Vector2((splitviewer.splitPosition / 8 * 6), 25));
-
-
-    }
-
+    //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    //GUI Drawing
     public void DrawTimelineUI(float widthTimeline)
     {
         //Get the current Animation Window if it exists
@@ -817,7 +777,7 @@ public class Audiotimeline : EditorWindow
         //Create button style
         GUIStyle buttonStyle = new GUIStyle(GUI.skin.box);
         buttonStyle.fixedWidth = widthSidePanel - 10;
-        buttonStyle.fixedHeight = 25;
+        buttonStyle.fixedHeight = 20;
         buttonStyle.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
         buttonStyle.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
         buttonStyle.hover.textColor = Color.white;
@@ -835,14 +795,14 @@ public class Audiotimeline : EditorWindow
         //Create button style
         GUIStyle buttonStyleicon = new GUIStyle(GUI.skin.box);
         buttonStyleicon.fixedWidth = 25;
-        buttonStyleicon.fixedHeight = 40;
+        buttonStyleicon.fixedHeight = 25;
         buttonStyleicon.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
         buttonStyleicon.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
         buttonStyleicon.hover.textColor = Color.white;
 
         GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.box);
         buttonStyle2.fixedWidth = widthSidePanel - 10;
-        buttonStyle2.fixedHeight = 25;
+        buttonStyle2.fixedHeight = 20;
         buttonStyle2.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.darkred, ColorRGBA.duskred, 16);
         buttonStyle2.margin.right = 0;
         buttonStyle2.padding.right = 0;
@@ -850,7 +810,7 @@ public class Audiotimeline : EditorWindow
         //General button style
         GUIStyle buttonStyle3 = new GUIStyle(GUI.skin.label);
         buttonStyle3.fixedWidth = widthSidePanel - 10;
-        buttonStyle3.fixedHeight = 25;
+        buttonStyle3.fixedHeight = 20;
         //Set background gradient
         buttonStyle3.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
         //set highlight gradient
@@ -859,7 +819,7 @@ public class Audiotimeline : EditorWindow
         buttonStyle3.hover.textColor = Color.white;
 
 
-        GUILayout.BeginHorizontal(GUILayout.Width(50));
+        GUILayout.BeginHorizontal(GUILayout.Width(55));
         //Vertical
         GUILayout.BeginVertical();
 
@@ -869,11 +829,11 @@ public class Audiotimeline : EditorWindow
         foreach (var track in audioManager.audioTracks)
         {
             //Horizontal
-            GUILayout.BeginHorizontal(
+            GUILayout.BeginVertical(
                 //draw a box
                 buttonStyletab
             );
-
+            GUILayout.BeginHorizontal();
             //Write 100width label with name
             GUILayout.BeginHorizontal();
             GUILayout.Label(track.clip.name, GUILayout.Width(60));
@@ -881,14 +841,15 @@ public class Audiotimeline : EditorWindow
             //Inputfield for init time
 
             float oldinitTime = track.initTime;
-            track.initTime = EditorGUILayout.FloatField("", track.initTime, GUILayout.Width(50));
+            //track.initTime = EditorGUILayout.FloatField("", track.initTime, GUILayout.Width(50));
             GUILayout.EndHorizontal();
 
 
             //reload the audio data if the init time has changed
             if (Mathf.Abs(oldinitTime - track.initTime) > 0.001f)
             {
-                track.LoadAudioData();
+                if (audioManager.autobuild)
+                    track.LoadAudioData();
             }
             // Icons for buttons
             GUIContent removeIcon = EditorGUIUtility.IconContent("d_P4_DeletedLocal"); // Replace with your icon
@@ -914,8 +875,26 @@ public class Audiotimeline : EditorWindow
 
 
 
+
             GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            track.targetgain = GUILayout.HorizontalSlider(track.targetgain, 0, 1, GUILayout.Width(widthSidePanel - 85));
+            //Label with red background
+            float oldtargetgain = track.targetgain;
+            GUILayout.Label(track.targetgain.ToString("0.00"), buttonStyle3);
+
+            if (Mathf.Abs(oldtargetgain - track.targetgain) > 0.001f)
+            {
+                if (audioManager.autobuild)
+                    track.LoadAudioData();
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.EndVertical();
         }
+
+        //Add Slider for targetgain of the track
+
 
         if (todelet != null)
         {
@@ -959,6 +938,9 @@ public class Audiotimeline : EditorWindow
 
 }
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//TIMELINE CLASS
+
 //Class to manage and draw a timeline
 public class TimelineView
 {
@@ -976,7 +958,7 @@ public class TimelineView
 
     public float mousePositionX = 0;
 
-    public float trackHeightOffset = 52;
+    public float trackHeightOffset = 57;
 
     AudiotrackManager audiotrackmgr;
 
@@ -1110,6 +1092,8 @@ public class TimelineView
 
 
 
+
+
         //Draw gray background 
         //EditorGUI.DrawRect(new Rect(0, 0, maxTime*100, trackHeight * trackCount), GetRGBA(ColorRGBA.grayscale_016));
         GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, timelinePosition_Offset.y, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 10)));
@@ -1119,6 +1103,8 @@ public class TimelineView
 
         GUIStyle boxstyle = new GUIStyle(GUI.skin.box);
         boxstyle.normal.background = colormgr.LoadTexture(TexItemType.Gradient_Horizontal, ColorRGBA.lightred, ColorRGBA.brightred, 32);
+        boxstyle.hover.background = colormgr.LoadTexture(TexItemType.Gradient_Horizontal, ColorRGBA.lightgreyred, ColorRGBA.brightred, 32);
+
 
 
 
@@ -1146,6 +1132,26 @@ public class TimelineView
             EditorGUI.DrawRect(new Rect(playbackPosition * timelinezoom.x, 0, 2, (trackHeight + 10) * (trackCount + 10)), GetRGBA(ColorRGBA.orange));
         }
 
+        //Draw the audiomanager.buildmix waveform
+        if (amgr.buildTrackpreview != null)
+        {
+            //Draw Image / Waveform
+            //Check if first pixel is white
+            if (amgr.displayPreview)
+            {
+                EditorGUI.DrawPreviewTexture(new Rect(0, 0, amgr.previewLength * timelinezoom.x, trackHeight + 3), amgr.buildTrackpreview, null, ScaleMode.StretchToFill);
+                //Add a Button to the Start to X
+                if (GUI.Button(new Rect(4, 18, 20, 20), "X"
+                , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.grey } }
+                ))
+                {
+                    amgr.displayPreview = false;
+                }
+            }
+
+        }
+
+
         //draw boxes for tracks
         foreach (int i in Enumerable.Range(0, audiotrackmgr.audioTracks.Count))
         {
@@ -1168,7 +1174,7 @@ public class TimelineView
             //check if mouse is over the box
             if (rect.Contains(Event.current.mousePosition))
             {
-                EditorGUI.DrawRect(rect, GetRGBA(ColorRGBA.grayscale_144));
+                EditorGUI.DrawRect(rect, GetRGBA(ColorRGBA.brightred));
                 doRepaint = true;
                 //if mousedown
                 if (current.type == EventType.MouseDown)
@@ -1202,12 +1208,13 @@ public class TimelineView
             float boxWidth = _width / resolution;
 
             //Draw Image / Waveform
-            EditorGUI.DrawPreviewTexture(new Rect(_x, _y + 20, _width, _height - 20), audiotrackmgr.audioTracks[i].previewImage, null, ScaleMode.StretchToFill);
+            if (audiotrackmgr.audioTracks[i].previewImage != null)
+                EditorGUI.DrawPreviewTexture(new Rect(_x, _y + 20, _width, _height - 20), audiotrackmgr.audioTracks[i].previewImage, null, ScaleMode.StretchToFill);
 
 
-            EditorGUI.LabelField(new Rect(_x, _y, 20, 12), audiotrackmgr.audioTracks[i].clip.name
+            EditorGUI.LabelField(new Rect(_x + 5, _y, 20, 12), audiotrackmgr.audioTracks[i].clip.name
           //Make color black and bold
-          , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.black }, fontStyle = FontStyle.Bold, fontSize = 12 }
+          , new GUIStyle() { normal = new GUIStyleState() { textColor = GetRGBA(ColorRGBA.darkred) }, fontStyle = FontStyle.Bold, fontSize = 14 }
           );
 
         }
@@ -1257,7 +1264,8 @@ public class TimelineView
 
 }
 
-
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//AUDIOMANAGER
 public class AudiotrackManager
 {
 
@@ -1267,8 +1275,21 @@ public class AudiotrackManager
     public int targetSampleRate = 44100; // Target sample rate in Hz
     public int targetBitDepth = 16; // Target bit depth in bits
     public int targetChannels = 2; // Target number of channels
-
     public bool autobuild = false;
+    public Texture2D buildTrackpreview = new Texture2D(2048, 255);
+    public float previewLength = 0;
+    public bool displayPreview = false;
+    public float setting_normalizationFac_Input = 1.0f;
+    public float setting_normalizationFac_Output = 0.5f;
+    public bool setting_doNormalizeInput = true;
+    public bool setting_doNormalizeOutput = false;
+
+
+
+    //targetgain
+    public float targetgain_In = 0.6f;
+
+    public float targetgain_Out = 0.8f;
 
     //init  
     public AudiotrackManager()
@@ -1287,11 +1308,21 @@ public class AudiotrackManager
         }
     }
 
-    public void renderSettings(int samplerate, int bitrate, int channels)
+    public void renderSettings(int samplerate, int bitrate, int channels, bool normalizeInput, float normalizationFacInput, bool normalizeOutput, float normalizationFacOutput, float targetgain_In, float targetgain_Out)
     {
+        setting_normalizationFac_Input = normalizationFacInput;
+        setting_normalizationFac_Output = normalizationFacOutput;
+        setting_doNormalizeInput = normalizeInput;
+        setting_doNormalizeOutput = normalizeOutput;
+
         targetSampleRate = samplerate;
         targetBitDepth = bitrate;
         targetChannels = channels;
+
+        this.targetgain_In = targetgain_In;
+        this.targetgain_Out = targetgain_Out;
+
+
         reloadAudioData();
     }
 
@@ -1320,13 +1351,17 @@ public class AudiotrackManager
             LoadJson(filePath + "/" + filename + ".json");
         }
     }
+
+    //AudioData Class for storing Json Data
     [Serializable]
     public class AudioData
     {
         public string[] ClipPaths;
         public float[] InitTimes;
+        public float[] targetgains;
         public string OutputFilePath;
         public string OutputFileName;
+
     }
 
     //Load Json
@@ -1346,7 +1381,11 @@ public class AudiotrackManager
             if (clip != null)
             {
                 AudioTrack audioTrack = new AudioTrack(clip);
-                audioTrack.initTime = audioData.InitTimes[i];
+                if (audioData.InitTimes.Length > i)
+                    audioTrack.initTime = audioData.InitTimes[i];
+                if (audioData.targetgains != null)
+                    if (audioData.targetgains.Length > i)
+                        audioTrack.targetgain = audioData.targetgains[i];
                 audioTracks.Add(audioTrack);
             }
         }
@@ -1357,6 +1396,19 @@ public class AudiotrackManager
         //Load all audio data
         //reloadAudioData();
         byte[][] mixedData = MixAudioData();
+
+        if (setting_doNormalizeOutput)
+        {
+            int maxvalue = (int)Math.Pow(2, targetBitDepth) - 1;
+            for (int i = 0; i < mixedData.Length; i++)
+                mixedData[i] = Normalize(mixedData[i], targetBitDepth, targetBitDepth > 8, setting_normalizationFac_Output * maxvalue, setting_normalizationFac_Output);
+        }
+
+        int samples = getMixLength(0) / (targetBitDepth / 8);
+        previewLength = (float)samples / targetSampleRate;
+        AudioTrack.DrawWaveform(AudioTrack.getFloatArrayFromSamples(targetBitDepth, mixedData, targetChannels, samples), buildTrackpreview.width, buildTrackpreview.height, buildTrackpreview);
+        this.displayPreview = true;
+
         CreateWaveFile(mixedData, filePath, filename + ".wav", targetSampleRate, targetChannels, targetBitDepth);
 
         // Reload the Folder
@@ -1421,6 +1473,7 @@ public class AudiotrackManager
         {
             audioData.ClipPaths[i] = AssetDatabase.GetAssetPath(audioTracks[i].clip);
             audioData.InitTimes[i] = audioTracks[i].initTime;
+            audioData.targetgains[i] = audioTracks[i].targetgain;
         }
 
         // Store clips in json
@@ -1435,14 +1488,16 @@ public class AudiotrackManager
 
     }
 
-    public int getMixLength(int channel)
+    public int getMixLength(int channel) //Gets the length per channel based on the longest clip
     {
         int maxLength = 0;
+        float maxtime = 0;
         foreach (var audiotrack in audioTracks)
         {
-            if ((int)((audiotrack.audioData[channel].Length + ((audiotrack.initTime) * audiotrack._targetSampleRate * (audiotrack._targetBitDepth / 8)))) > maxLength)
+            if (Math.Round((audiotrack.clip.length + (audiotrack.initTime)), 3) > maxtime)
             {
-                maxLength = (int)(audiotrack.audioData[channel].Length + ((audiotrack.initTime) * audiotrack._targetSampleRate * (audiotrack._targetBitDepth / 8)));
+                maxtime = (float)Math.Round((audiotrack.clip.length + (audiotrack.initTime)), 3);
+                maxLength = (int)Math.Round(((audiotrack.clip.length + (audiotrack.initTime)) * audiotrack._targetSampleRate * (targetBitDepth / 8)));
             }
         }
         return maxLength;
@@ -1476,7 +1531,7 @@ public class AudiotrackManager
             {
 
                 int trackstartsample = (int)(audioTracks[i].initTime * targetSampleRate);
-                int trackendsample = +(int)(trackstartsample) + ((audioTracks[i].audioData[ch].Length) / bytedepth);
+                int trackendsample = (int)((trackstartsample) + ((audioTracks[i].clip.length) * targetSampleRate));
 
                 //Initialize all with 0
                 for (int b = 0; b < mixedData[ch][i].Length; b++)
@@ -1486,13 +1541,25 @@ public class AudiotrackManager
 
                 for (int s = 0; s < mixedData[ch][i].Length; s = s + bytedepth) //Iterate Samples
                 {
-                    int b = s * bytedepth;
-                    //Write 0 if before or after the track
-                    if (s >= trackstartsample && s < trackendsample)
+                    if (s >= trackstartsample)
                     {
                         for (int byteIndex = 0; byteIndex < bytedepth; byteIndex++) //Iterate Bytes
                         {
-                            mixedData[ch][i][b + byteIndex] = audioTracks[i].audioData[ch][b + byteIndex - (trackstartsample * bytedepth)];
+                            int current_source_Index = (int)((s) + byteIndex) - (trackstartsample * bytedepth);
+                            int current_dest_Index = (int)((s) + byteIndex);
+
+                            //Logical Check for Limit
+                            if (current_source_Index >= 0 && current_dest_Index >= 0)
+                                if (ch < audioTracks[i].audioData.Length &&
+                                    i < audioTracks.Count &&
+                                    ch < mixedData.Length &&
+                                    i < mixedData[ch].Length &&
+                                    i < audioTracks[i].audioData[ch].Length &&
+                                    current_source_Index < audioTracks[i].audioData[ch].Length &&
+                                    current_dest_Index < mixedData[ch][i].Length)
+                                {
+                                    mixedData[ch][i][current_dest_Index] = audioTracks[i].audioData[ch][current_source_Index];
+                                }
                         }
 
                     }
@@ -1504,11 +1571,103 @@ public class AudiotrackManager
         ReportAudioData(mixedData[0][0], "Collected CH1");
         ReportAudioData(mixedData[1][0], "Collected CH2");
 
-        return MixAudioBytes(mixedData, targetBitDepth);
+        return MixAudioBytesSimple(mixedData, targetBitDepth);
     }
 
     // Combine all audio tracks into one byte array
     //Combine all audio tracks into one byte array
+
+    public byte[] Normalize(byte[] audioData, int bitDepth, bool considerSignBit, float targetMax, float strength)
+    {
+        int bytesPerSample = bitDepth / 8;
+        float[] audioDataFloat = new float[audioData.Length / bytesPerSample];
+        for (int i = 0; i < audioDataFloat.Length; i++)
+        {
+            int value = 0;
+            for (int j = 0; j < bytesPerSample; j++)
+            {
+                value |= (audioData[i * bytesPerSample + j] & 0xFF) << (j * 8);
+            }
+            if (considerSignBit && (value & (1 << (bitDepth - 1))) != 0)
+            {
+                value |= ~((1 << (bitDepth - 1)) - 1); // Extend the sign bit
+            }
+            audioDataFloat[i] = value;
+        }
+
+        float currentMax = audioDataFloat.Max(Math.Abs);
+        float normalizationFactor = 1 + strength * (targetMax / currentMax - 1);
+        for (int i = 0; i < audioDataFloat.Length; i++)
+        {
+            audioDataFloat[i] *= normalizationFactor;
+        }
+
+        // Convert back to byte array
+        byte[] normalizedAudioData = new byte[audioData.Length];
+        for (int i = 0; i < audioDataFloat.Length; i++)
+        {
+            int value = (int)audioDataFloat[i];
+            for (int j = 0; j < bitDepth / 8; j++)
+            {
+                normalizedAudioData[i * bitDepth / 8 + j] = (byte)(value >> (j * 8));
+            }
+        }
+
+        return normalizedAudioData;
+    }
+
+
+    public byte[][] MixAudioBytesSimple(byte[][][] audiolines, int bitDepth)
+    {
+        int numChannels = audiolines.Length;
+        int numTracks = audiolines[0].Length;
+        int numBytes = audiolines[0][0].Length;
+
+        //get the max value of bytedepth
+        int maxvalue = (int)Math.Pow(2, bitDepth) - 1;
+
+        //Normalize all audio data
+        if (setting_doNormalizeInput)
+            for (int ch = 0; ch < numChannels; ch++)
+            {
+                for (int j = 0; j < numTracks; j++)
+                {
+                    float targetMax = maxvalue * targetgain_In;
+                    if (j < audioTracks.Count) targetMax = targetMax * audioTracks[j].targetgain;
+                    audiolines[ch][j] = Normalize(audiolines[ch][j], bitDepth, bitDepth > 8, targetMax, setting_normalizationFac_Input);
+                }
+            }
+
+        byte[][] mixedData = new byte[numChannels][];
+
+        for (int ch = 0; ch < numChannels; ch++)
+        {
+            mixedData[ch] = new byte[numBytes];
+
+            for (int i = 0; i < numBytes; i += 2)
+            {
+                int sum = 0;
+
+                for (int j = 0; j < numTracks; j++)
+                {
+                    short sample = BitConverter.ToInt16(audiolines[ch][j], i);
+                    sum += sample;
+                }
+
+                short mixedSample = (short)(sum / numTracks);
+                byte[] mixedSampleBytes = BitConverter.GetBytes(mixedSample);
+
+                if (i + 1 < mixedData[ch].Length)
+                {
+                    mixedData[ch][i] = mixedSampleBytes[0];
+                    mixedData[ch][i + 1] = mixedSampleBytes[1];
+                }
+            }
+        }
+
+        return mixedData;
+    }
+
     public byte[][] MixAudioBytes(byte[][][] audiolines, int bitDepth)
     {
         int numChannels = audiolines.Length;
@@ -1521,36 +1680,89 @@ public class AudiotrackManager
             mixedData[ch] = new byte[numBytes];
         }
 
-        float amplitudeFactor = 0f; // Increase the amplitude by 50%
+        //get the max value of bytedepth
+        int maxvalue = (int)Math.Pow(2, bitDepth) - 1;
+
+        if (setting_doNormalizeInput)
+            //Normalize all audio data
+            for (int ch = 0; ch < numChannels; ch++)
+            {
+                for (int j = 0; j < numTracks; j++)
+                {
+                    audiolines[ch][j] = Normalize(audiolines[ch][j], bitDepth, bitDepth > 8, maxvalue * 0.3f, setting_normalizationFac_Input);
+                }
+            }
+
 
         for (int j = 0; j < numTracks; j++) //Tracks
         {
             for (int ch = 0; ch < numChannels; ch++) //Channels
             {
+
                 for (int i = 0; i < numBytes; i += bitDepth / 8) //Samples
                 {
-                    for (int b = 0; b < bitDepth / 8; b++) // combine and wise
+                    float value_dest = 0;
+                    float value_source = 0;
+
+                    bool alwaysPositive = bitDepth > 8;
+                    // Get the value of the sign bit
+                    byte signBit_source = (byte)(audiolines[ch][j][i] & 0x80);
+                    byte signBit_dest = (byte)(mixedData[ch][i] & 0x80);
+
+                    //Iterate the Bytes
+                    for (int b = 0; b < bitDepth / 8; b++)
                     {
-                        if (i + b < mixedData[ch].Length)
+                        value_source += (audiolines[ch][j][i + b] & 0xFF) << (b * 8);
+                        value_dest += (mixedData[ch][i + b] & 0xFF) << (b * 8);
+
+                        if (signBit_source == 0 || alwaysPositive)
                         {
-                            if (b == mixedData[ch].Length - 1)
-                            {
-                                // Store the most significant bit
-                                bool firstbit = (audiolines[ch][j][i + b] & 0x80) == 0x80;
-
-                                // Shift all bits to the right by one
-
-                                audiolines[ch][j][i + b] = (byte)((audiolines[ch][j][i + b] >> 1) & 0x7F);
-
-                                // Add the most significant bit again on the same position
-
-                                if (firstbit)
-                                {
-                                    audiolines[ch][j][i + b] |= (byte)(0x80);
-                                }
-                            }
-                            mixedData[ch][i + b] = (byte)(mixedData[ch][i + b] | audiolines[ch][j][i + b]);
+                            value_source += (audiolines[ch][j][i + b] & 0xFF) << (b * 8);
                         }
+                        else
+                        {
+                            value_source -= (audiolines[ch][j][i + b] & 0xFF) << (b * 8);
+                        }
+
+                        if (signBit_dest == 0 || alwaysPositive)
+                        {
+                            value_dest += (mixedData[ch][i + b] & 0xFF) << (b * 8);
+                        }
+                        else
+                        {
+                            value_dest -= (mixedData[ch][i + b] & 0xFF) << (b * 8);
+                        }
+
+                    }
+
+                    //get the average of the two values
+                    float average = (value_dest + value_source) / 2;
+
+
+                    if (average < 0)
+                    {
+                        average = 0;
+                    }
+                    else if (average > Math.Pow(2, bitDepth) - 1)
+                    {
+                        average = (float)Math.Pow(2, bitDepth) - 1;
+                    }
+
+
+                    uint average_uint = (uint)average;
+
+                    if (i % 5000 == 0 && false)
+                    {
+                        Debug.Log("Value Dest: " + value_dest);
+                        Debug.Log("Value Source: " + value_source);
+                        Debug.Log("Averageuint: " + average_uint);
+
+                    }
+
+                    //set the value to the mixed data
+                    for (int b = 0; b < bitDepth / 8; b++)
+                    {
+                        mixedData[ch][i + b] = (byte)(average_uint >> (b * 8));
                     }
                 }
             }
@@ -1651,8 +1863,6 @@ public class AudiotrackManager
         Debug.Log("File Size: " + fileSize);
 
         return header;
-
-
     }
 
 
@@ -1706,9 +1916,24 @@ public class AudiotrackManager
 
         ReportAudioData(audioData[0], "Output All");
 
+        init_MixedClipData(filePath, filename);
+
 
         fileStream.Close();
         Debug.Log("File Written: " + filePath);
+    }
+
+    public void init_MixedClipData(string filePath, string filename)
+    {
+        //Load the file
+        //Get relative path
+        string relativePath = filePath.Substring(filePath.IndexOf("Assets"));
+        //AudioClip buildClip = AssetDatabase.LoadAssetAtPath<AudioClip>(relativePath);
+        //Add the clip to the list
+        //if (buildClip != null)
+        //{
+        //AudioTrack newAudioTrack = new AudioTrack(buildClip);
+        //}
     }
 
     //report average and max from audio data byte array
@@ -1719,7 +1944,8 @@ public class AudiotrackManager
 
 }
 
-//Class that containes an audiotrack, and the time it should start playing, if it is playing
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Audiotrack
 public class AudioTrack
 {
     //Main Variables
@@ -1734,6 +1960,8 @@ public class AudioTrack
     private int _oldBitDepth = 0;
     private float _length = 0;
     public byte[][] sampledChannels;
+
+    public float targetgain = 0.7f;
 
     Dictionary<string, int> header;
 
@@ -1776,6 +2004,7 @@ public class AudioTrack
         Debug.Log("[" + name + "] Bytes: " + bytedata.Length + "// Max: " + max + "// Median: " + average / bytedata.Length);
     }
 
+    //Downsampling for preview Waveform Image
     private float[] Downsample(float[] samples, int desiredSamplesCount, int byteDepth)
     {
         int originalSamplesCount = samples.Length;
@@ -1820,26 +2049,24 @@ public class AudioTrack
         return downsampledSamples;
     }
 
-
+    //Function that loads the audio data from the clip
+    //Will execute on loading but can also be called from outside
     public void renderPreviewImage()
     {
 
-        DrawWaveform(audioCurve[0], 512, 250);
-
+        DrawWaveform(audioCurve[0], 512, 250, previewImage);
     }
 
-    void DrawWaveform(float[] samples, int width, int height)
+    public static void DrawWaveform(float[] samples, int width, int height, Texture2D targetTexture)
     {
         // Create a new texture for the waveform using transparent defaultcolor
 
         //Definining Curve Color
-        Color curveColor = new Color(0.5f, 0.2f, 0.2f, 0.1f);
+        Color curveColor = new Color(0.6f, 0.3f, 0.3f, 0.1f);
 
         //Defining background gracient color
         Color backgroundColor_a = new Color(0.3f, 0.1f, 0.1f, 0f);
         Color backgroundColor_b = new Color(0.3f, 0.2f, 0.2f, 0.1f);
-
-        previewImage = new Texture2D(width, height);
 
         //Draw a gradient from top to bottom
         for (int y = 0; y < height; y++)
@@ -1848,10 +2075,10 @@ public class AudioTrack
             Color backgroundColor = Color.Lerp(backgroundColor_a, backgroundColor_b, t);
             for (int x = 0; x < width; x++)
             {
-                previewImage.SetPixel(x, y, backgroundColor);
+                targetTexture.SetPixel(x, y, backgroundColor);
             }
         }
-        previewImage.Apply();
+        targetTexture.Apply();
 
         // Calculate the number of samples per pixel
         int samplesPerPixel = samples.Length / width;
@@ -1878,54 +2105,54 @@ public class AudioTrack
             // Draw the waveform for this pixel
             for (int y = minY; y < maxY; y++)
             {
-                previewImage.SetPixel(x, y, curveColor);
+                targetTexture.SetPixel(x, y, curveColor);
             }
         }
 
         // Apply the changes to the texture
-        previewImage.Apply();
+        targetTexture.Apply();
     }
 
-    public void getFloatArrayFromSamples()
+    public static float[] getFloatArrayFromSamples(int bitDepth, byte[][] data, int channels, int samplerate)
     {
         // Initialize the float array for storing samples
-        float[][] samples = new float[clip.channels][];
+        float[][] samples = new float[channels][];
 
         //Calculate the max value from byte
-        float maxPossibleAmplitude = (float)Math.Pow(2, _oldBitDepth - 1);
+        float maxPossibleAmplitude = (float)Math.Pow(2, bitDepth - 1);
 
         //Debug and report if audio array is empty
-        if (audioData == null || audioData.Length == 0)
+        if (data == null || data.Length == 0)
         {
             Debug.LogError("Audio Data is empty");
-            return;
+            return null;
         }
 
         // Iterate over channels
-        for (int ch = 0; ch < clip.channels; ch++)
+        for (int ch = 0; ch < channels; ch++)
         {
             // Initialize the array for the current channel
-            samples[ch] = new float[clip.samples];
+            samples[ch] = new float[samplerate];
 
             // Iterate over samples
-            for (int i = 0; i < clip.samples; i++)
+            for (int i = 0; i < samplerate; i++)
             {
                 // Initialize the sample value
                 int sampleValue = 0;
 
                 //Store the bytes of each sample
-                for (int b = 0; b < _oldBitDepth / 8; b++)
+                for (int b = 0; b < bitDepth / 8; b++)
                 {
                     // Extract the byte value from audioData
-                    if (audioData[ch].Length <= i * (_oldBitDepth / 8) + b)
+                    if (data[ch].Length <= i * (bitDepth / 8) + b)
                     {
                         continue;
                     }
 
-                    byte byteValue = audioData[ch][i * (_oldBitDepth / 8) + b];
-                    if (b == _oldBitDepth / 8 - 1 && (byteValue & 0x80) > 0) // If the byte is the last one and its sign bit is set
+                    byte byteValue = data[ch][i * (bitDepth / 8) + b];
+                    if (b == bitDepth / 8 - 1 && (byteValue & 0x80) > 0) // If the byte is the last one and its sign bit is set
                     {
-                        sampleValue |= byteValue << (b * 8) | ~((1 << (_oldBitDepth - 1)) - 1); // Extend the sign bit
+                        sampleValue |= byteValue << (b * 8) | ~((1 << (bitDepth - 1)) - 1); // Extend the sign bit
                     }
                     else
                     {
@@ -1938,8 +2165,8 @@ public class AudioTrack
             }
         }
 
-        audioCurve = new float[_targetChannels][];
-        for (int ch = 0; ch < _targetChannels; ch++)
+        float[][] floatdata = new float[channels][];
+        for (int ch = 0; ch < channels; ch++)
         {
             //continue if one is null
             if (samples[ch] == null || samples[ch].Length == 0)
@@ -1947,13 +2174,15 @@ public class AudioTrack
                 continue;
             }
             //init audiocurves channel
-            audioCurve[ch] = new float[samples[ch].Length];
-            audioCurve[ch] = samples[ch];
+            floatdata[ch] = new float[samples[ch].Length];
+            floatdata[ch] = samples[ch];
         }
+
+        return floatdata[0];
     }
     public void InitializeData()
     {
-
+        previewImage = new Texture2D(512, 250);
     }
     public void LoadAudioData()
     {
@@ -1976,9 +2205,10 @@ public class AudioTrack
         }
 
 
-        getFloatArrayFromSamples();
+        ;
 
-        renderPreviewImage();
+        if (previewImage != null)
+            DrawWaveform(getFloatArrayFromSamples(_oldBitDepth, audioData, clip.channels, clip.samples), 512, 250, previewImage);
 
 
         //Debug count of audio data
@@ -2242,4 +2472,244 @@ public class AudioTrack
 
 
 
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//Popup for setting values
+
+public class CustomPopup : EditorWindow
+{
+
+    public enum SampleRate
+    {
+        _8000Hz = 8000,
+        _16000Hz = 16000,
+        _32000Hz = 32000,
+        _44100Hz = 44100,
+        _48000Hz = 48000,
+        _96000Hz = 96000
+    }
+
+    public enum BitDepth
+    {
+        _8bit = 8,
+        _16bit = 16,
+        _24bit = 24,
+        _32bit = 32,
+        _48bit = 48,
+        _64bit = 64
+    }
+
+    private int samplerate;
+    private int bitrate;
+    private int channels;
+
+    private bool doNormalizeInput;
+    private float normalizeThreshold;
+
+    private bool doNormalizeOutput;
+    private float normalizeOutputThreshold;
+
+    private float targetgain_In;
+    private float targetgain_Out;
+
+    Vector2 scrollPos = new Vector2(0, 0);
+
+
+    private Action<int, int, int, bool, float, bool, float, float, float> callback;
+
+    private ColorTextureManager colorTextureManager = new ColorTextureManager();
+
+    public static void ShowWindow(Action<int, int, int, bool, float, bool, float, float, float> callback, int samplerate = 0, int bitrate = 0, int channels = 0, bool doNormalizeInput = false, float normalizeThreshold = 0, bool doNormalizeOutput = false, float normalizeOutputThreshold = 0, float targetgain_In = 0, float targetgain_Out = 0)
+    {
+        var window = GetWindow<CustomPopup>("Set Values");
+        window.callback = callback;
+        window.samplerate = samplerate;
+        window.bitrate = bitrate;
+        window.channels = channels;
+        window.doNormalizeInput = doNormalizeInput;
+        window.normalizeThreshold = normalizeThreshold;
+        window.doNormalizeOutput = doNormalizeOutput;
+        window.normalizeOutputThreshold = normalizeOutputThreshold;
+        window.targetgain_In = targetgain_In;
+        window.targetgain_Out = targetgain_Out;
+    }
+
+
+    //On Enable and Disable setup the color texture manager
+    private void OnEnable()
+    {
+        colorTextureManager.CacheFolder = "Assets/AnimefanPostUPs-Tools/AnimefanPostUPs_Tools/Editor/Textures_Internal/";
+    }
+
+    private void OnDisable()
+    {
+        colorTextureManager.Unload();
+    }
+
+    private void OnGUI()
+    {
+
+        //Create box with the size of the window hovering in the background
+        Rect windowRect = new Rect(0, 0, position.width, position.height);
+        //repaint if Rect contains mouse position
+        //Draw Gradient Background using a texture
+        GUI.DrawTexture(new Rect(0, 0, position.width, position.height), colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_032, ColorRGBA.grayscale_016, 128));
+
+        if (windowRect.Contains(Event.current.mousePosition))
+        {
+            Repaint();
+        }
+
+        //Create scroll vertical
+        // Begin scroll view
+        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(position.width), GUILayout.Height(position.height));
+
+        //Begin scrollview
+
+
+        GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.box);
+        buttonStyle2.fixedWidth = position.width - 10;
+        buttonStyle2.fixedHeight = 25;
+        buttonStyle2.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.darkred, ColorRGBA.duskred, 16);
+        buttonStyle2.margin.right = 0;
+        buttonStyle2.padding.right = 0;
+
+        void CreateEnumButton<T>(T enumValue) where T : Enum
+        {
+            if (GUILayout.Button(enumValue.ToString().TrimStart('_') + "", buttonStyle2))
+            {
+                if (typeof(T) == typeof(SampleRate))
+                {
+                    samplerate = (int)(object)enumValue;
+                }
+                else if (typeof(T) == typeof(BitDepth))
+                {
+                    bitrate = (int)(object)enumValue;
+                }
+                //audioManager.reloadAudioData();
+            }
+        }
+
+        GUILayout.Label("Target Settings:", GUILayout.Width(position.width - 10));
+
+        SampleRate sampleRate = (SampleRate)samplerate;
+        BitDepth bitDepth = (BitDepth)bitrate;
+        sampleRate = (SampleRate)EditorGUILayout.EnumPopup("", sampleRate, buttonStyle2);
+        samplerate = (int)sampleRate;
+
+        GUILayout.Space(5);
+
+        bitDepth = (BitDepth)EditorGUILayout.EnumPopup("", bitDepth, buttonStyle2);
+        bitrate = (int)bitDepth;
+
+        GUILayout.Space(5);
+
+        //Debug timeline variabled ALL
+        //Debug.Log("Timeline: " + timelineView.maxTime + " Tracks: " + audioManager.audioTracks.Count + " Track Height: " + timelineView.trackHeight + " Position: " + timelineView.timelinePosition + " Zoom: " + timelineView.timelinezoom);
+
+        //Create 2 Toggling buttons for 1 or 2 channels
+        if (GUILayout.Button("Current:  " + (channels == 1 ? "MONO" : "STEREO"), buttonStyle2))
+        {
+            if (channels == 1)
+            {
+                channels = 2;
+            }
+            else
+                channels = 1;
+
+        }
+
+        //Spacer 30
+        GUILayout.Space(30);
+
+
+        //Normalize settings
+        GUILayout.Label("[" + normalizeThreshold + "]" + "Global Normalize Input:", GUILayout.Width(position.width - 10));
+
+        GUILayout.Label("(Applied before Mixing)", GUILayout.Width(position.width - 10));
+        GUILayout.Label("(Used for Gain! )", GUILayout.Width(position.width - 10));
+        GUILayout.Label("Default: On)", GUILayout.Width(position.width - 10));
+        //Toggle
+        if (GUILayout.Button("Normalize Input: " + (doNormalizeInput ? "ON" : "OFF"), buttonStyle2))
+        {
+            doNormalizeInput = !doNormalizeInput;
+        }
+
+        GUILayout.Space(5);
+
+        //Slider to set the threshold
+        normalizeThreshold = GUILayout.HorizontalSlider(normalizeThreshold, 0, 1, GUILayout.Width(position.width - 10));
+
+
+        GUILayout.Space(12);
+
+        //Output
+        GUILayout.Label("[" + normalizeOutputThreshold + "]" + "Global Normalize Output:", GUILayout.Width(position.width - 10));
+        GUILayout.Label("(Applied on Result)", GUILayout.Width(position.width - 10));
+        GUILayout.Label("Default: Off)", GUILayout.Width(position.width - 10));
+
+        //Toggle
+        if (GUILayout.Button("[" + normalizeOutputThreshold + "]" + "Normalize Output: " + (doNormalizeOutput ? "ON" : "OFF"), buttonStyle2))
+        {
+            doNormalizeOutput = !doNormalizeOutput;
+        }
+
+        GUILayout.Space(5);
+
+        //Slider to set the threshold
+        normalizeOutputThreshold = GUILayout.HorizontalSlider(normalizeOutputThreshold, 0, 1, GUILayout.Width(position.width - 10));
+
+        GUILayout.BeginVertical();
+        {
+            GUILayout.Space(12);
+
+            //setting for Targetgain
+            GUILayout.Label("Target Gain Input:", GUILayout.Width(position.width / 2 - 20));
+            //Splider
+            targetgain_In = GUILayout.HorizontalSlider(targetgain_In, -1, 1, GUILayout.Width(position.width / 2 - 20));
+        }
+        GUILayout.EndVertical();
+
+
+        GUILayout.Space(5);
+
+
+
+        //Vertical
+        GUILayout.BeginVertical();
+        {
+            //setting for Targetgain
+            GUILayout.Label("Target Gain Output:", GUILayout.Width(position.width / 2 - 20));
+
+            //Splider
+            targetgain_Out = GUILayout.HorizontalSlider(targetgain_Out, -1, 1, GUILayout.Width(position.width / 2 - 20));
+        }
+        GUILayout.EndVertical();
+
+
+        GUILayout.Space(12);
+
+
+        GUILayout.Label("Functions", GUILayout.Width(position.width - 10));
+
+        /*
+            //Buttons to toggle bool variable in audiomanager
+            if (GUILayout.Button("Auto Update Mix: " + (audioManager.autobuild ? "ON" : "OFF"), buttonStyle3))
+            {
+                audioManager.autobuild = !audioManager.autobuild;
+            }
+
+            GUILayout.Space(5);
+            */
+
+        //Focus the folder
+        if (GUILayout.Button("OK", buttonStyle2))
+        {
+            callback?.Invoke(samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out);
+            Close();
+        }
+        GUILayout.EndScrollView();
+
+    }
 }
