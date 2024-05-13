@@ -1544,6 +1544,7 @@ public class AudiotrackManager
         {
             ClipPaths = new string[audioTracks.Count],
             InitTimes = new float[audioTracks.Count],
+            targetgains = new float[audioTracks.Count],
             OutputFilePath = filePath,
             OutputFileName = Path.GetFileNameWithoutExtension(filePath)
         };
