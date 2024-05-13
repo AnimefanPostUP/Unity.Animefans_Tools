@@ -642,7 +642,7 @@ public class Audiotimeline : EditorWindow
             BindingFlags.Static | BindingFlags.Public
             );
 
-        Debug.Log(audioUtilClass);
+        //Debug.Log(audioUtilClass);
 
         method.Invoke(
             null,
@@ -685,7 +685,7 @@ public class Audiotimeline : EditorWindow
         {
             isPlaying = false;
             stopAudio();
-            Debug.Log("Stopped");
+            //Debug.Log("Stopped");
         }
     }
 
@@ -701,7 +701,7 @@ public class Audiotimeline : EditorWindow
                 PlayClip(clip);
                 SetClipSamplePosition(clip, (int)((clip.samples * (GetCurrentTime() / clip.length))));
 
-                Debug.Log("Playing");
+                //Debug.Log("Playing");
             }
         }
     }
@@ -717,12 +717,12 @@ public class Audiotimeline : EditorWindow
                 PlayClip(clip);
                 SetClipSamplePosition(clip, (int)((clip.samples * (GetCurrentTime() / clip.length))));
 
-                Debug.Log("Playing" + GetCurrentTime());
+                //Debug.Log("Playing" + GetCurrentTime());
             }
             else
             {
                 isPlaying = false;
-                Debug.Log("No Clip Found");
+                //Debug.Log("No Clip Found");
             }
         }
     }
@@ -1596,7 +1596,7 @@ public class AudiotrackManager
             {
                 int length = getMixLength(ch);
                 //Debug
-                Debug.Log("Order Tracks Input CH" + ch + " Bytes:" + length);
+                //Debug.Log("Order Tracks Input CH" + ch + " Bytes:" + length);
                 mixedData[ch][i] = new byte[length];
             }
         }
@@ -1647,8 +1647,8 @@ public class AudiotrackManager
             }
         }
 
-        ReportAudioData(mixedData[0][0], "Collected CH1");
-        ReportAudioData(mixedData[1][0], "Collected CH2");
+        //ReportAudioData(mixedData[0][0], "Collected CH1");
+        //ReportAudioData(mixedData[1][0], "Collected CH2");
 
         return MixAudioBytesSimple(mixedData, targetBitDepth);
     }
@@ -1835,9 +1835,9 @@ public class AudiotrackManager
 
                     if (i % 5000 == 0 && false)
                     {
-                        Debug.Log("Value Dest: " + value_dest);
-                        Debug.Log("Value Source: " + value_source);
-                        Debug.Log("Averageuint: " + average_uint);
+                        //Debug.Log("Value Dest: " + value_dest);
+                        //Debug.Log("Value Source: " + value_source);
+                        //Debug.Log("Averageuint: " + average_uint);
 
                     }
 
@@ -1850,11 +1850,11 @@ public class AudiotrackManager
             }
         }
 
-        Debug.Log("Mixed Data CH1: " + mixedData[0].Length);
-        Debug.Log("Mixed Data CH2: " + mixedData[1].Length);
+        //Debug.Log("Mixed Data CH1: " + mixedData[0].Length);
+        //Debug.Log("Mixed Data CH2: " + mixedData[1].Length);
 
-        ReportAudioData(mixedData[0], "Mixed CH1");
-        ReportAudioData(mixedData[1], "Mixed CH2");
+        //ReportAudioData(mixedData[0], "Mixed CH1");
+        //ReportAudioData(mixedData[1], "Mixed CH2");
 
         return mixedData;
     }
@@ -1941,8 +1941,8 @@ public class AudiotrackManager
         header[43] = (byte)((dataSize >> 24) & 0xff);
 
 
-        Debug.Log("Data Size: " + dataSize);
-        Debug.Log("File Size: " + fileSize);
+        //Debug.Log("Data Size: " + dataSize);
+        //Debug.Log("File Size: " + fileSize);
 
         return header;
     }
@@ -1996,13 +1996,13 @@ public class AudiotrackManager
         //Debug
 
 
-        ReportAudioData(audioData[0], "Output All");
+        //ReportAudioData(audioData[0], "Output All");
 
         init_MixedClipData(filePath, filename);
 
 
         fileStream.Close();
-        Debug.Log("File Written: " + filePath);
+        //Debug.Log("File Written: " + filePath);
     }
 
     public void init_MixedClipData(string filePath, string filename)
@@ -2085,7 +2085,7 @@ public class AudioTrack
             }
         }
         //Total size
-        Debug.Log("[" + name + "] Bytes: " + bytedata.Length + "// Max: " + max + "// Median: " + average / bytedata.Length);
+        //Debug.Log("[" + name + "] Bytes: " + bytedata.Length + "// Max: " + max + "// Median: " + average / bytedata.Length);
     }
 
     //Downsampling for preview Waveform Image
@@ -2208,7 +2208,7 @@ public class AudioTrack
         //Debug and report if audio array is empty
         if (data == null || data.Length == 0)
         {
-            Debug.LogError("Audio Data is empty");
+            //Debug.LogError("Audio Data is empty");
             return null;
         }
 
@@ -2296,8 +2296,8 @@ public class AudioTrack
 
 
         //Debug count of audio data
-        Debug.Log("Audio Data CH1: " + audioData[0].Length);
-        Debug.Log("Audio Data CH2: " + audioData[1].Length);
+        //Debug.Log("Audio Data CH1: " + audioData[0].Length);
+        //Debug.Log("Audio Data CH2: " + audioData[1].Length);
     }
 
     public byte[] uncompressData(byte[] audioBytes)
@@ -2329,7 +2329,7 @@ public class AudioTrack
         {
             header = WavReader.ReadWavHeader(fileData);
             audioBytes = WavReader.GetAudioDataFromWav(fileData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
-            ReportAudioData(audioBytes, "Read WAV Audio Bytes");
+            //ReportAudioData(audioBytes, "Read WAV Audio Bytes");
         }
         else if (Path.GetExtension(absolutePath) == ".mp3")
         {
@@ -2337,7 +2337,7 @@ public class AudioTrack
             byte[] newWavData = MP3Reader.GetAudioDataFromMp3(absolutePath);
             header = WavReader.ReadWavHeader(newWavData);
             audioBytes = WavReader.GetAudioDataFromWav(newWavData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
-            ReportAudioData(audioBytes, "Read MP3 Audio Bytes");
+            //ReportAudioData(audioBytes, "Read MP3 Audio Bytes");
         }
 
         else return null;
@@ -2347,7 +2347,7 @@ public class AudioTrack
         int totalBytes = audioBytes.Length; // Subtract 44 to exclude the .wav header
         float durationInSeconds = clip.length;
 
-        Debug.Log("durationInSeconds: " + durationInSeconds);
+        //Debug.Log("durationInSeconds: " + durationInSeconds);
 
         int channels = header["Channels"];
         int sampleRate = header["SampleRate"];
@@ -2357,19 +2357,19 @@ public class AudioTrack
         int bytesPerSample = bitDepth / 8;
 
         //Debug all Variables
-        Debug.Log("Total Bytes: " + totalBytes);
-        Debug.Log("Duration: " + durationInSeconds);
-        Debug.Log("Channels: " + channels);
-        Debug.Log("Sample Rate: " + sampleRate);
-        Debug.Log("Block Size: " + blockSize);
-        Debug.Log("Bit Depth: " + bitDepth);
-        Debug.Log("Bytes Per Sample: " + bytesPerSample);
+        //Debug.Log("Total Bytes: " + totalBytes);
+        //Debug.Log("Duration: " + durationInSeconds);
+        //Debug.Log("Channels: " + channels);
+        //Debug.Log("Sample Rate: " + sampleRate);
+        //Debug.Log("Block Size: " + blockSize);
+        //Debug.Log("Bit Depth: " + bitDepth);
+        //Debug.Log("Bytes Per Sample: " + bytesPerSample);
 
 
         //Abort if 0
         if (sampleRate == 0 || bitDepth == 0 || channels == 0)
         {
-            Debug.LogError("Invalid audio data");
+            //Debug.LogError("Invalid audio data");
             return null;
         }
 
@@ -2384,15 +2384,15 @@ public class AudioTrack
         if (validateSamplecount != Math.Round(sampleRate * durationInSeconds * channels))
         {
             //Debug warning with samplecount and expected samplecount
-            Debug.LogWarning("Invalid Sample Count");
-            Debug.LogWarning("Sample Count: " + validateSamplecount);
-            Debug.LogWarning("Expected Sample Count: " + sampleRate * durationInSeconds * channels);
+            //Debug.LogWarning("Invalid Sample Count");
+            //Debug.LogWarning("Sample Count: " + validateSamplecount);
+            //Debug.LogWarning("Expected Sample Count: " + sampleRate * durationInSeconds * channels);
             //Try if Channelcount was wrong
             channels = 1;
             validateSamplecount = (int)Math.Round((double)audioBytes.Length / bytesPerSample / channels);
             if (validateSamplecount != (int)Math.Round(sampleRate * durationInSeconds))
             {
-                Debug.LogWarning("Invalid Sample Count...recreating placeholderdata");
+                //Debug.LogWarning("Invalid Sample Count...recreating placeholderdata");
                 //recreate the audio data with empty data on the end fitting the exspected length
                 byte[] newAudioBytes = new byte[1 + (int)Math.Round(sampleRate * durationInSeconds) * bytesPerSample * channels];
 
@@ -2410,11 +2410,11 @@ public class AudioTrack
                         newAudioBytes[i] = audioBytes[i];
                     }
                 }
-                Debug.LogWarning("Copied Bytes: " + copiedBytes);
+                //Debug.LogWarning("Copied Bytes: " + copiedBytes);
 
                 audioBytes = newAudioBytes;
                 //Debug new audiobytes
-                Debug.Log(audioBytes.Length.ToString() + " - Recreated Audio Bytes");
+                //Debug.Log(audioBytes.Length.ToString() + " - Recreated Audio Bytes");
             }
         }
 
@@ -2461,10 +2461,10 @@ public class AudioTrack
         }
 
         //iterate Channels
-        for (int i = 0; i < channels; i++)
-        {
-            ReportAudioData(channelData[i], ("Separated CH" + i));
-        }
+        //for (int i = 0; i < channels; i++)
+        //{
+            //ReportAudioData(channelData[i], ("Separated CH" + i));
+        //}
 
         return channelData;
     }
@@ -2481,7 +2481,7 @@ public class AudioTrack
         int oldDepthBytes = oldBitDepth / 8;
         int newDepthBytes = newBitDepth / 8;
 
-
+/*
         Debug.Log(
             "#Samps: " + newSamples +
             "#TByte: " + newSamples * newDepthBytes +
@@ -2492,6 +2492,7 @@ public class AudioTrack
             " _Bit : " + oldBitDepth +
             " _Rate: " + oldSampleRate
          );
+         */
 
 
         int newbytecount = (int)newSamples * newDepthBytes;
@@ -2543,7 +2544,7 @@ public class AudioTrack
             }
         }
 
-        ReportAudioData(resampledBytes, "Resampled Data");
+        //ReportAudioData(resampledBytes, "Resampled Data");
 
         return resampledBytes;
     }
