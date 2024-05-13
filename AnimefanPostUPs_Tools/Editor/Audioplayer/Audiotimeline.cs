@@ -152,12 +152,19 @@ public class Audiotimeline : EditorWindow
         //Timelinescrolling
         if (Event.current.type == EventType.ScrollWheel && (Event.current.control || Event.current.alt))
         {
-            timelineView.timelinezoom.x -= (Event.current.delta.y * 4);
-
-            //Clamp value between 1 and 1000
+            float old = timelineView.timelinezoom.x;
+            timelineView.timelinezoom.x -= (Event.current.delta.y*5);
             timelineView.timelinezoom.x = Mathf.Clamp(timelineView.timelinezoom.x, 1, 1000);
 
-            //use Event
+            //get mouse position
+            float mousepos = Event.current.mousePosition.x;
+            //calculate relative to window
+            float relative = (mousepos - splitviewer.splitPosition)*100;
+
+            // Adjust the offset based on the change in zoom level and the zoom center
+            float a = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x))/2))/100*old;
+            float b = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x))/2))/100*timelineView.timelinezoom.x;
+            timelineView.timelinePosition_Offset.x += a-b;
             Event.current.Use();
             Repaint();
         }
@@ -1168,8 +1175,8 @@ public class TimelineView
                 doOverlay = true;
 
 
-                timelinePosition_Offset.x += (xPos + (widthTimeline) / 2 - current.mousePosition.x) / 200f;
-                timelinePosition_Offset.y += ((500) / 2 - current.mousePosition.y) / 200f;
+                timelinePosition_Offset.x += (xPos + (widthTimeline) / 2 - current.mousePosition.x) / 20;
+                timelinePosition_Offset.y += ((300) / 2 - current.mousePosition.y) / 20;
                 //maxTime * timelinezoom.x
                 timelinePosition_Offset.x = (float)Mathf.Clamp(timelinePosition_Offset.x, -(maxTime * timelinezoom.x), (maxTime * timelinezoom.x));
                 doRepaint = true;
@@ -1352,7 +1359,7 @@ public class TimelineView
         {
             //Draw 2 White Boxes to indicate the position
             EditorGUI.DrawRect(new Rect(xPos + (widthTimeline) / 2 - 1, 0, 2, 900), GetRGBA(ColorRGBA.white));
-            EditorGUI.DrawRect(new Rect(0, (190) - 1, 2000, 2), GetRGBA(ColorRGBA.white));
+            EditorGUI.DrawRect(new Rect(0, (150) - 1, 2000, 2), GetRGBA(ColorRGBA.white));
         }
 
         return doRepaint;
@@ -1567,7 +1574,7 @@ public class AudiotrackManager
         //Debug is seconds by dividing by the target sample rate
         Debug.Log("Start: " + startingsample / targetSampleRate + " End: " + endsample / targetSampleRate);
 
-        byte[][] mixedDataBuffer=null;
+        byte[][] mixedDataBuffer = null;
 
         //set the bytes in the array of the mixedData with the mixedDataBuffer based on the startingsample and endsample 
         if (counter <= 0 || !optimized) //Normal Caching
@@ -1633,7 +1640,7 @@ public class AudiotrackManager
             //if (mixedDataBuffer != null){
             //CreateWaveFile(mixedDataBuffer, filePath, filename + ".wav", targetSampleRate, targetChannels, targetBitDepth);
             //Debug.Log("Written Short");
-            
+
         }
 
         //store inittimes for this mix
@@ -1780,7 +1787,7 @@ public class AudiotrackManager
 
         if (endsample != -1 || startingsample != -1)
         {
-            numBytes = Math.Abs((int)(endsample - startingsample)* (int)(targetBitDepth / 8));
+            numBytes = Math.Abs((int)(endsample - startingsample) * (int)(targetBitDepth / 8));
         }
 
         byte[][] data = new byte[numChannels][];
@@ -1801,7 +1808,7 @@ public class AudiotrackManager
 
 
 
-                    current_source_Index = (int)(i) - (int)(audioTracks[j].initTime * targetSampleRate )* (int)(targetBitDepth / 8) ;
+                    current_source_Index = (int)(i) - (int)(audioTracks[j].initTime * targetSampleRate) * (int)(targetBitDepth / 8);
                     //Check
 
                     //Logical Check for Limit
@@ -2059,8 +2066,8 @@ public class AudiotrackManager
             int sampleSize = (int)bitDepth / 8;
 
             // Calculate the starting and ending positions in the file
-            int startPos = 44 + startingSample * sampleSize *numChannels; // 44 for the header
-            int endPos = 44 + endingSample * sampleSize *numChannels;
+            int startPos = 44 + startingSample * sampleSize * numChannels; // 44 for the header
+            int endPos = 44 + endingSample * sampleSize * numChannels;
 
             // Make sure we don't go past the end of the file
             if (endPos > fileStream.Length)
@@ -2079,10 +2086,10 @@ public class AudiotrackManager
                     for (int b = 0; b < sampleSize; b++)
                     {
                         if (ch < audioData.Length)
-                            if (i + b -startingSample< audioData[ch].Length - 1 && i + b -startingSample > 0)
+                            if (i + b - startingSample < audioData[ch].Length - 1 && i + b - startingSample > 0)
                             {
-                                fileStream.WriteByte(audioData[ch][i + b -startingSample]);
-      
+                                fileStream.WriteByte(audioData[ch][i + b - startingSample]);
+
                             }
                     }
                 }
