@@ -1201,7 +1201,7 @@ public class TimelineView
             if (i % 10 == 0)
             {
                 //Draw Label with time
-                EditorGUI.DrawRect(new Rect(i * timelinezoom.x / 10, 0, 1, (trackHeight + 10) * (trackCount + 10)), GetRGBA(ColorRGBA.red));
+                EditorGUI.DrawRect(new Rect(i * timelinezoom.x / 10, 0, 1, (trackHeight + 10) * (trackCount + 10)), GetRGBA(ColorRGBA.lightgreyred));
             }
         }
 
@@ -1441,6 +1441,16 @@ public class AudiotrackManager
         public string OutputFilePath;
         public string OutputFileName;
 
+        //Store Noramlization settings
+        public float normalizationFacInput;
+        public float normalizationFacOutput;
+        public bool doNormalizeInput;
+        public bool doNormalizeOutput;
+
+        //Store gain
+        public float targetgain_In;
+        public float targetgain_Out;
+
     }
 
     //Load Json
@@ -1468,6 +1478,16 @@ public class AudiotrackManager
                 audioTracks.Add(audioTrack);
             }
         }
+
+        //set the normalization settings
+        setting_normalizationFac_Input = audioData.normalizationFacInput;
+        setting_normalizationFac_Output = audioData.normalizationFacOutput;
+        setting_doNormalizeInput = audioData.doNormalizeInput;
+        setting_doNormalizeOutput = audioData.doNormalizeOutput;
+
+        targetgain_In = audioData.targetgain_In;
+        targetgain_Out = audioData.targetgain_Out;
+
     }
 
     public void createMix(string filePath, string filename)
@@ -1547,6 +1567,14 @@ public class AudiotrackManager
             targetgains = new float[audioTracks.Count],
             OutputFilePath = filePath,
             OutputFileName = Path.GetFileNameWithoutExtension(filePath)
+            //Store Noramlization settings
+            ,
+            normalizationFacInput = setting_normalizationFac_Input,
+            normalizationFacOutput = setting_normalizationFac_Output,
+            doNormalizeInput = setting_doNormalizeInput,
+            doNormalizeOutput = setting_doNormalizeOutput,
+            targetgain_In = targetgain_In,
+            targetgain_Out = targetgain_Out
         };
 
         for (int i = 0; i < audioTracks.Count; i++)
@@ -1702,7 +1730,7 @@ public class AudiotrackManager
         int numChannels = audiolines.Length;
         int numTracks = audiolines[0].Length;
         int numBytes = audiolines[0][0].Length;
-
+        int bytesPerSample = bitDepth / 8;
         //get the max value of bytedepth
         int maxvalue = (int)Math.Pow(2, bitDepth) - 1;
 
@@ -1724,26 +1752,80 @@ public class AudiotrackManager
         {
             mixedData[ch] = new byte[numBytes];
 
-            for (int i = 0; i < numBytes; i += 2)
+            for (int i = 0; i < numBytes; i += bytesPerSample)
             {
-                int sum = 0;
+                long sum = 0;
 
                 for (int j = 0; j < numTracks; j++)
                 {
                     //check if the track 
-                    if ((i+1<audiolines[ch][j].Length)){
-                    short sample = BitConverter.ToInt16(audiolines[ch][j], i);
-                    sum += sample;
-                    } else sum += 0;
+                    if (i + bytesPerSample <= audiolines[ch][j].Length)
+                    {
+                        byte[] sampleBytes = new byte[bytesPerSample];
+                        Array.Copy(audiolines[ch][j], i, sampleBytes, 0, bytesPerSample);
+                        long sample = 0;
+                        if (bitDepth == 8)
+                        {
+                            sample = sampleBytes[0];
+                        }
+                        else if (bitDepth == 16)
+                        {
+                            sample = BitConverter.ToInt16(sampleBytes, 0);
+                        }
+                        else if (bitDepth == 24)
+                        {
+                            // Treat the 24-bit data as a 32-bit signed integer
+                            sample = sampleBytes[0] | (sampleBytes[1] << 8) | (sampleBytes[2] << 16);
+                            if ((sample & 0x800000) != 0)
+                            {
+                                // If the sign bit is set, extend the sign bit
+                                sample |= 0xFF000000;
+                            }
+                        }
+                        else if (bitDepth == 32)
+                        {
+                            sample = BitConverter.ToInt32(sampleBytes, 0);
+                        }
+                        else if (bitDepth == 64)
+                        {
+                            sample = BitConverter.ToInt64(sampleBytes, 0);
+                        }
+                        // Add other bit depths as needed
+                        sum += sample;
+                    }
                 }
 
-                short mixedSample = (short)(sum / numTracks);
-                byte[] mixedSampleBytes = BitConverter.GetBytes(mixedSample);
-
-                if (i + 1 < mixedData[ch].Length)
+                long mixedSample = sum / numTracks;
+                byte[] mixedSampleBytes = new byte[bytesPerSample];
+                if (bitDepth == 8)
                 {
-                    mixedData[ch][i] = mixedSampleBytes[0];
-                    mixedData[ch][i + 1] = mixedSampleBytes[1];
+                    mixedSampleBytes = new byte[] { (byte)mixedSample };
+                }
+                else if (bitDepth == 16)
+                {
+                    mixedSampleBytes = BitConverter.GetBytes((short)mixedSample);
+                }
+                else if (bitDepth == 24)
+                {
+                    // Discard the extra bits by shifting
+                    mixedSampleBytes = BitConverter.GetBytes((int)(mixedSample << 8));
+                }
+                else if (bitDepth == 32)
+                {
+                    mixedSampleBytes = BitConverter.GetBytes((int)mixedSample);
+                }
+                else if (bitDepth == 64)
+                {
+                    mixedSampleBytes = BitConverter.GetBytes(mixedSample);
+                }
+                // Add other bit depths as needed
+
+                for (int b = 0; b < bytesPerSample; b++)
+                {
+                    if (i + b < mixedData[ch].Length)
+                    {
+                        mixedData[ch][i + b] = mixedSampleBytes[b];
+                    }
                 }
             }
         }
@@ -2464,7 +2546,7 @@ public class AudioTrack
         //iterate Channels
         //for (int i = 0; i < channels; i++)
         //{
-            //ReportAudioData(channelData[i], ("Separated CH" + i));
+        //ReportAudioData(channelData[i], ("Separated CH" + i));
         //}
 
         return channelData;
@@ -2482,18 +2564,18 @@ public class AudioTrack
         int oldDepthBytes = oldBitDepth / 8;
         int newDepthBytes = newBitDepth / 8;
 
-/*
-        Debug.Log(
-            "#Samps: " + newSamples +
-            "#TByte: " + newSamples * newDepthBytes +
-            " #Bit: " + newBitDepth +
-            " #Rate: " + newSampleRate +
-            " _Samps: " + oldSamples +
-            " _TByte: " + oldSamples * oldDepthBytes +
-            " _Bit : " + oldBitDepth +
-            " _Rate: " + oldSampleRate
-         );
-         */
+        /*
+                Debug.Log(
+                    "#Samps: " + newSamples +
+                    "#TByte: " + newSamples * newDepthBytes +
+                    " #Bit: " + newBitDepth +
+                    " #Rate: " + newSampleRate +
+                    " _Samps: " + oldSamples +
+                    " _TByte: " + oldSamples * oldDepthBytes +
+                    " _Bit : " + oldBitDepth +
+                    " _Rate: " + oldSampleRate
+                 );
+                 */
 
 
         int newbytecount = (int)newSamples * newDepthBytes;
