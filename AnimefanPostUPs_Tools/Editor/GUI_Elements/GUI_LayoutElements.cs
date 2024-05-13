@@ -375,7 +375,7 @@ namespace AnimefanPostUPs_Tools.GUI_LayoutElements
                 }
                 else if (item.type == DropdownItemType.Option_Func_Bool)
                 {
-                    string icon = item.value ? "P4_CheckOutRemote" : "P4_DeletedRemote";
+                    string icon = item.value ? "P4_CheckOutRemote" : "P4_DeletedLocal";
                     GUI.Label(itemsRect, new GUIContent(item.name, EditorGUIUtility.IconContent(icon).image), style);
                     if (isMouseDownEvent)
                         if (itemsRect.Contains(mouseposition))
@@ -386,7 +386,7 @@ namespace AnimefanPostUPs_Tools.GUI_LayoutElements
                 }
             }
 
-            if (isMouseDownEvent && !trigger)
+            if (isMouseDownEvent && !trigger) 
             {
                 isOpen = false;
             }

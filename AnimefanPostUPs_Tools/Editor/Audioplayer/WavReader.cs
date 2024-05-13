@@ -40,6 +40,11 @@ namespace AnimefanPostUPs_Tools.WavReader
                 int chunkSize;
                 do
                 {
+
+                    if (reader.BaseStream.Position == reader.BaseStream.Length)
+                    {
+                        break; // Break the loop if end of file is reached
+                    }
                     chunkId = new string(reader.ReadChars(4));
                     chunkSize = reader.ReadInt32();
                     if (chunkId != "fmt ")
@@ -88,5 +93,5 @@ namespace AnimefanPostUPs_Tools.WavReader
         }
     }
 
-    
+
 }
