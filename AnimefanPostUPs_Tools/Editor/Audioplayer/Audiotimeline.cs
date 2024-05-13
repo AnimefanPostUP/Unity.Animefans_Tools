@@ -153,18 +153,18 @@ public class Audiotimeline : EditorWindow
         if (Event.current.type == EventType.ScrollWheel && (Event.current.control || Event.current.alt))
         {
             float old = timelineView.timelinezoom.x;
-            timelineView.timelinezoom.x -= (Event.current.delta.y*5);
+            timelineView.timelinezoom.x -= (Event.current.delta.y * 5);
             timelineView.timelinezoom.x = Mathf.Clamp(timelineView.timelinezoom.x, 1, 1000);
 
             //get mouse position
             float mousepos = Event.current.mousePosition.x;
             //calculate relative to window
-            float relative = (mousepos - splitviewer.splitPosition)*100;
+            float relative = (mousepos - splitviewer.splitPosition) * 100;
 
             // Adjust the offset based on the change in zoom level and the zoom center
-            float a = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x))/2))/100*old;
-            float b = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x))/2))/100*timelineView.timelinezoom.x;
-            timelineView.timelinePosition_Offset.x += a-b;
+            float a = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x)) / 2)) / 100 * old;
+            float b = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x)) / 2)) / 100 * timelineView.timelinezoom.x;
+            timelineView.timelinePosition_Offset.x += a - b;
             Event.current.Use();
             Repaint();
         }
@@ -1410,7 +1410,7 @@ public class AudiotrackManager
             track.targetBitDepth = targetBitDepth;
             track.targetChannels = targetChannels;
             track.setting_doNormalizeInput = setting_doNormalizeInput;
-            track.setting_normalizationFac_Input= setting_normalizationFac_Input;
+            track.setting_normalizationFac_Input = setting_normalizationFac_Input;
 
             track.checkUpdate();
         }
@@ -1538,13 +1538,13 @@ public class AudiotrackManager
 
         mixedData = MixAudioBytesCombined();
 
-            if (setting_doNormalizeOutput)
-            {
-                int maxvalue = (int)Math.Pow(2, targetBitDepth) - 1;
-                for (int i = 0; i < mixedData.Length; i++)
-                    mixedData[i] = Normalize(mixedData[i], targetBitDepth, targetBitDepth > 8, setting_normalizationFac_Output * maxvalue, setting_normalizationFac_Output);
-            }
-        
+        if (setting_doNormalizeOutput)
+        {
+            int maxvalue = (int)Math.Pow(2, targetBitDepth) - 1;
+            for (int i = 0; i < mixedData.Length; i++)
+                mixedData[i] = Normalize(mixedData[i], targetBitDepth, targetBitDepth > 8, setting_normalizationFac_Output * maxvalue, setting_normalizationFac_Output);
+        }
+
 
         int samples = getMixLength(0) / (targetBitDepth / 8);
         previewLength = (float)samples / targetSampleRate;
@@ -1554,10 +1554,10 @@ public class AudiotrackManager
         //Debug file exist
         //Debug.Log("File Exist: " + File.Exists(filePath + "/" + filename + ".wav"));
 
- 
+
         CreateWaveFile(mixedData, filePath, filename + ".wav", targetSampleRate, targetChannels, targetBitDepth);
-    
-       
+
+
 
         //store inittimes for this mix
         for (int i = 0; i < audioTracks.Count; i++)
@@ -1683,7 +1683,7 @@ public class AudiotrackManager
 
 
 
-     
+
 
         mixedData = new byte[numChannels][];
         int current_source_Index = 0;
@@ -1708,6 +1708,7 @@ public class AudiotrackManager
 
                     //Logical Check for Limit
                     if (current_source_Index >= 0 && current_source_Index < audioTracks[j].audioDataNormalized[ch].Length)
+
                     //if (true || ch < audioTracks[i].audioDataNormalized.Length &&
                     //j < audioTracks.Count &&
                     //i < audioTracks[i].audioDataNormalized[ch].Length &&
@@ -2107,7 +2108,7 @@ public class AudioTrack
         {
             if (value != _targetSampleRate)
             {
-                marked_dirty_settings |= true;
+                marked_dirty_settings = true;
                 _targetSampleRate = value;
             }
 
@@ -2123,7 +2124,7 @@ public class AudioTrack
 
             if (value != _targetBitDepth)
             {
-                marked_dirty_settings |= true;
+                marked_dirty_settings = true;
                 _targetBitDepth = value;
             }
         }
@@ -2151,7 +2152,7 @@ public class AudioTrack
         {
             if (value != _targetgain)
             {
-                marked_dirty_normalization |= true;
+                marked_dirty_normalization = true;
                 _targetgain = value;
             }
         }
@@ -2167,7 +2168,7 @@ public class AudioTrack
         {
             if (value != _initTime)
             {
-                marked_dirty_time |= true;
+                marked_dirty_time = true;
                 _initTime = value;
             }
         }
@@ -2181,7 +2182,7 @@ public class AudioTrack
         {
             if (value != _startsample)
             {
-                marked_dirty_time |= true;
+                marked_dirty_time = true;
                 _startsample = value;
             }
         }
@@ -2195,7 +2196,7 @@ public class AudioTrack
         {
             if (_endsample != value)
             {
-                marked_dirty_time |= true;
+                marked_dirty_time = true;
                 _endsample = value;
             }
         }
@@ -2256,14 +2257,14 @@ public class AudioTrack
 
 
 
-        if (marked_dirty_settings || audioData == null && !attemptUpdate)
+        if (marked_dirty_settings || audioData == null)
         {
             update_AudioData();
             updated_PreviewImage();
             marked_dirty_settings = false;
         }
 
-        if (marked_dirty_normalization || audioDataNormalized == null && !attemptUpdate)
+        if (marked_dirty_normalization || audioDataNormalized == null)
         {
             update_NormalizedAudioData();
             marked_dirty_normalization = false;
@@ -2743,8 +2744,9 @@ public class AudioTrack
 
         }
 
-        for (int ch = 0; ch < _targetChannels; ch++)
-            audioDataNormalized[ch] = AudiotrackManager.Normalize(this.audioData[ch], _targetBitDepth, _targetBitDepth > 8, targetMax, setting_normalizationFac_Input);
+        if (this._setting_doNormalizeInput)
+            for (int ch = 0; ch < _targetChannels; ch++)
+                audioDataNormalized[ch] = AudiotrackManager.Normalize(this.audioData[ch], _targetBitDepth, _targetBitDepth > 8, targetMax, setting_normalizationFac_Input);
 
     }
 
