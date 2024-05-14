@@ -177,19 +177,14 @@ public class Audiotimeline : EditorWindow
         {
             float old = timelineView.timelinezoom.x;
             timelineView.timelinezoom.x -= (Event.current.delta.y * 5);
-            timelineView.timelinezoom.x -= (Event.current.delta.y * 5);
             timelineView.timelinezoom.x = Mathf.Clamp(timelineView.timelinezoom.x, 1, 1000);
 
             //get mouse position
             float mousepos = Event.current.mousePosition.x;
             //calculate relative to window
             float relative = (mousepos - splitviewer.splitPosition) * 100;
-            float relative = (mousepos - splitviewer.splitPosition) * 100;
 
             // Adjust the offset based on the change in zoom level and the zoom center
-            float a = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x)) / 2)) / 100 * old;
-            float b = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x)) / 2)) / 100 * timelineView.timelinezoom.x;
-            timelineView.timelinePosition_Offset.x += a - b;
             float a = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x)) / 2)) / 100 * old;
             float b = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x)) / 2)) / 100 * timelineView.timelinezoom.x;
             timelineView.timelinePosition_Offset.x += a - b;
