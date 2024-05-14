@@ -464,7 +464,7 @@ public class Audiotimeline : EditorWindow
 
             if(audioManager.autosave)
             {
-                n = filename + "_autosave";
+                n = filename + "_auto";
             }
             else
             {
