@@ -460,9 +460,9 @@ public class Audiotimeline : EditorWindow
             }
 
             //Create File
-            string n="";
+            string n = "";
 
-            if(audioManager.autosave)
+            if (audioManager.autosave)
             {
                 n = filename + "_auto";
             }
@@ -473,18 +473,17 @@ public class Audiotimeline : EditorWindow
 
             //If file exists
             if (File.Exists(targetfolder + "/" + n + ".wav") && false)
-                if (File.Exists(targetfolder + "/" + n + ".wav") && false)
-                {
-                    //Open dialog for yes or no
-                    if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
-                    {
-                        audioManager.createMix(targetfolder, n);
-                    }
-                }
-                else
+            {
+                //Open dialog for yes or no
+                if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
                 {
                     audioManager.createMix(targetfolder, n);
                 }
+            }
+            else
+            {
+                audioManager.createMix(targetfolder, n);
+            }
         }
     }
 
@@ -1067,7 +1066,7 @@ public class Audiotimeline : EditorWindow
             {
                 //focus in project window
                 EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
-               
+
             }
         }
 
