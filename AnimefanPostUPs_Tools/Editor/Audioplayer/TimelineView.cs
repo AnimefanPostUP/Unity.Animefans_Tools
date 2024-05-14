@@ -200,13 +200,13 @@ namespace AnimefanPostUPs_Tools.TimelineView
             {
 
 
-                if (i % scaling / 5 == 0 || i % scaling == 0)
+                if (i % 2 == 0 || i % 10 == 0)
                 {
-                    EditorGUI.DrawRect(new Rect(i * timelinezoom.x / scaling, 0, timelinezoom.x / scaling, (trackHeight + 10) * (trackCount + 20)), GetRGBA(ColorRGBA.grayscale_032));
+                    EditorGUI.DrawRect(new Rect(i * timelinezoom.x / scaling, 0, timelinezoom.x * scaling, (trackHeight + 10) * (trackCount + 20)), GetRGBA(ColorRGBA.grayscale_032));
                 }
-                else EditorGUI.DrawRect(new Rect(i * timelinezoom.x / scaling, 0, timelinezoom.x / scaling, (trackHeight + 10) * (trackCount + 20)), GetRGBA(ColorRGBA.grayscale_025));
+                else EditorGUI.DrawRect(new Rect(i * timelinezoom.x / scaling, 0, timelinezoom.x * scaling, (trackHeight + 10) * (trackCount + 20)), GetRGBA(ColorRGBA.grayscale_025));
 
-                if (i % scaling == 0)
+                if (i % 10 == 0)
                 {
                     //Draw Label with time
                     EditorGUI.DrawRect(new Rect(i * timelinezoom.x / scaling, 0, 1, (trackHeight + 10) * (trackCount + 10)), GetRGBA(ColorRGBA.lightgreyred));
@@ -214,8 +214,8 @@ namespace AnimefanPostUPs_Tools.TimelineView
 
 
                 // Draw Label with time
-                if (i % scaling == 0)
-                    EditorGUI.LabelField(new Rect(1 + (i * timelinezoom.x / scaling), 2, 25, 14), (i / scaling).ToString());
+                if (i % 10 == 0)
+                    EditorGUI.LabelField(new Rect(1 + (i * timelinezoom.x / scaling), 2, 45, 14), (i / scaling).ToString());
 
 
             }
