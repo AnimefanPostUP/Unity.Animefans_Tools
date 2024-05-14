@@ -70,7 +70,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 if (value != _targetSampleRate)
                 {
-                    Debug.Log("Setting SampleRate to: " + value);
+                    //Debug.Log("Setting SampleRate to: " + value);
                     marked_dirty_settings = true;
                     _targetSampleRate = value;
                 }
@@ -87,7 +87,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
 
                 if (value != _targetBitDepth)
                 {
-                    Debug.Log("Setting BitDepth to: " + value);
+                    //Debug.Log("Setting BitDepth to: " + value);
                     marked_dirty_settings = true;
                     _targetBitDepth = value;
                 }
@@ -102,7 +102,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 if (value != _targetChannels)
                 {
-                    Debug.Log("Setting Channels to: " + value);
+                    //Debug.Log("Setting Channels to: " + value);
                     marked_dirty_settings = true;
                     _targetChannels = value;
                 }
@@ -117,7 +117,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 if (value != _targetgain)
                 {
-                    Debug.Log("Setting Gain to: " + value);
+                    //Debug.Log("Setting Gain to: " + value);
                     marked_dirty_normalization = true;
                     _targetgain = value;
                 }
@@ -132,7 +132,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 if (value != _targetgain_scaling)
                 {
-                    Debug.Log("Setting Gain to: " + value);
+                    //Debug.Log("Setting Gain to: " + value);
                     marked_dirty_normalization = true;
                     _targetgain_scaling = value;
                 }
@@ -150,8 +150,9 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 if (value != _initTime)
                 {
-                    Debug.Log("Setting Time to: " + value);
+                    //Debug.Log("Setting Time to: " + value);
                     marked_dirty_time = true;
+                    marked_dirty_render = true;
                     _initTime = value;
                 }
             }
@@ -165,7 +166,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 if (value != _startsample)
                 {
-                    Debug.Log("Setting Sample to: " + value);
+                    //Debug.Log("Setting Sample to: " + value);
                     marked_dirty_time = true;
                     _startsample = value;
                 }
@@ -180,7 +181,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 if (_endsample != value)
                 {
-                    Debug.Log("Setting Sample to: " + value);
+                    //Debug.Log("Setting Sample to: " + value);
                     marked_dirty_time = true;
                     _endsample = value;
                 }
@@ -197,7 +198,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
 
                 if (_setting_doNormalizeInput != value)
                 {
-                    Debug.Log("Setting Normalize to: " + value);
+                    //Debug.Log("Setting Normalize to: " + value);
                     marked_dirty_normalization = true;
                     _setting_doNormalizeInput = value;
                 }
@@ -227,6 +228,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
         public bool marked_dirty_settings = true;
         public bool marked_dirty_normalization = true;
         public bool marked_dirty_preview = true;
+        public bool marked_dirty_render= true;
 
 
 
@@ -234,7 +236,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
         {
             this.clip = clip;
             this.absolutePath = AssetDatabase.GetAssetPath(clip);
-            previewImage = new Texture2D(512, 250);
+            previewImage = new Texture2D(512, 255);
             checkUpdate();
         }
 
@@ -242,10 +244,11 @@ namespace AnimefanPostUPs_Tools.AudioTrack
         {
 
             //Debug the marked dirty
-            Debug.Log("Marked Dirty: " + marked_dirty_settings + " " + marked_dirty_normalization + " " + marked_dirty_preview + " " + marked_dirty_time);
+            //Debug.Log("Marked Dirty: " + marked_dirty_settings + " " + marked_dirty_normalization + " " + marked_dirty_preview + " " + marked_dirty_time);
 
             if (marked_dirty_settings || audioData == null)
             {
+                marked_dirty_render = true;
                 update_AudioData();
                 updated_PreviewImage();
                 marked_dirty_settings = false;
@@ -253,8 +256,16 @@ namespace AnimefanPostUPs_Tools.AudioTrack
 
             if (marked_dirty_normalization || audioDataNormalized == null)
             {
+                marked_dirty_render = true;
                 update_NormalizedAudioData();
                 marked_dirty_normalization = false;
+            }
+
+            if (marked_dirty_preview || previewImage == null)
+            {
+                marked_dirty_render = true;
+                DrawWaveform(getFloatArrayFromSamples(_targetBitDepth, audioData, _targetChannels, audioData[0].Length/2), 512, 255, previewImage);
+                marked_dirty_preview = false;
             }
 
         }
@@ -324,11 +335,6 @@ namespace AnimefanPostUPs_Tools.AudioTrack
 
         //Function that loads the audio data from the clip
         //Will execute on loading but can also be called from outside
-        public void renderPreviewImage()
-        {
-
-            DrawWaveform(audioCurve[0], 512, 250, previewImage);
-        }
 
         public static void DrawWaveform(float[] samples, int width, int height, Texture2D targetTexture)
         {
@@ -705,16 +711,17 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             if (marked_dirty_preview || previewImage == null)
             {
                 marked_dirty_preview = false;
-                DrawWaveform(getFloatArrayFromSamples(_targetBitDepth, audioData, _targetChannels, audioData[0].Length), 2048, 255, previewImage);
+                DrawWaveform(getFloatArrayFromSamples(_targetBitDepth, audioData, _targetChannels, audioData[0].Length/2), 512, 255, previewImage);
             }
         }
 
         public void update_NormalizedAudioData()
         {
+            marked_dirty_render=true;
             marked_dirty_normalization = false;
             int maxvalue = (int)Math.Pow(2, _targetBitDepth) - 1;
             float targetMax = maxvalue * _targetgain * targetgain_scaling;
-            if (targetBitDepth>8) targetMax=targetMax/2;
+            if (targetBitDepth > 8) targetMax = targetMax / 2;
 
             startsample = (int)(this.initTime * _targetSampleRate);
             endsample = ((int)((this.startsample) + ((clip.length) * _targetSampleRate)));
@@ -734,14 +741,28 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             }
 
             if (this._setting_doNormalizeInput)
+            {
                 for (int ch = 0; ch < _targetChannels; ch++)
                     audioDataNormalized[ch] = AudioMixUtils.Normalize(this.audioData[ch], _targetBitDepth, _targetBitDepth > 8, targetMax, _setting_normalizationFac_Input);
+            } else {
+                    //set Normalized Data to original by copying all bytes
+                    for (int ch = 0; ch < _targetChannels; ch++)
+                    {
+                        audioDataNormalized[ch] = new byte[this.audioData[ch].Length];
+                        for (int i = 0; i < this.audioData[ch].Length; i++)
+                        {
+                            audioDataNormalized[ch][i] = this.audioData[ch][i];
+                        }
+                    }
+                    
 
+            }
         }
 
 
         public void update_AudioData()
         {
+            marked_dirty_render=true;
             marked_dirty_settings = false;
             audioData = GetChannels();
         }
