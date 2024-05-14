@@ -48,14 +48,20 @@ namespace AnimefanPostUPs_Tools.CustomPopup
         private float targetgain_In;
         private float targetgain_Out;
 
+        private bool
+            autobuild,
+            autosave,
+            snapView,
+            optimizedBuild;
+
         Vector2 scrollPos = new Vector2(0, 0);
 
 
-        private Action<int, int, int, bool, float, bool, float, float, float> callback;
+        private Action<int, int, int, bool, float, bool, float, float, float, bool, bool, bool, bool> callback;
 
         private ColorTextureManager colorTextureManager = new ColorTextureManager();
 
-        public static void ShowWindow(Action<int, int, int, bool, float, bool, float, float, float> callback, int samplerate = 0, int bitrate = 0, int channels = 0, bool doNormalizeInput = false, float normalizeThreshold = 0, bool doNormalizeOutput = false, float normalizeOutputThreshold = 0, float targetgain_In = 0, float targetgain_Out = 0)
+        public static void ShowWindow(Action<int, int, int, bool, float, bool, float, float, float, bool, bool, bool, bool> callback, int samplerate = 0, int bitrate = 0, int channels = 0, bool doNormalizeInput = false, float normalizeThreshold = 0, bool doNormalizeOutput = false, float normalizeOutputThreshold = 0, float targetgain_In = 0, float targetgain_Out = 0, bool autobuild=false, bool autosave=false, bool snapView=false, bool optimizedBuild=false)
         {
             var window = GetWindow<CustomPopup>("Set Values");
             window.callback = callback;
@@ -68,6 +74,11 @@ namespace AnimefanPostUPs_Tools.CustomPopup
             window.normalizeOutputThreshold = normalizeOutputThreshold;
             window.targetgain_In = targetgain_In;
             window.targetgain_Out = targetgain_Out;
+            window.autobuild = autobuild;
+            window.autosave = autosave;
+            window.snapView = snapView;
+            window.optimizedBuild = optimizedBuild;
+
         }
 
 
@@ -238,10 +249,45 @@ namespace AnimefanPostUPs_Tools.CustomPopup
                 GUILayout.Space(5);
                 */
 
-            //Focus the folder
-            if (GUILayout.Button("OK", buttonStyle2))
+            //Buttons to toggle bool variable in audiomanager
+             GUILayout.Label("(Saves the file on Changes)", GUILayout.Width(position.width - 10));
+            if (GUILayout.Button("Auto Save Json: " + (autosave ? "ON" : "OFF"), buttonStyle2))
             {
-                callback?.Invoke(samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out);
+                autosave = !autosave;
+            }
+
+            GUILayout.Space(5);
+
+            //Buttons to toggle bool variable in audiomanager
+             GUILayout.Label("(Tracks will Scroll with the Sidepanel)", GUILayout.Width(position.width - 10));
+            if (GUILayout.Button("Link Sidepanel" + (snapView ? "ON" : "OFF"), buttonStyle2))
+            {
+                snapView = !snapView;
+            }
+
+            GUILayout.Space(5);
+
+            //Buttons to toggle bool variable in audiomanager
+
+            GUILayout.Label("(Writing only Changes to File)", GUILayout.Width(position.width - 10));
+            if (GUILayout.Button("Optimized Build: " + (optimizedBuild ? "ON" : "OFF"), buttonStyle2))
+            {
+                optimizedBuild = !optimizedBuild;
+            }
+
+            GUILayout.Space(5);
+
+            //Buttons to toggle bool variable in audiomanager
+             GUILayout.Label("(Writes a [name]_auto.wav file on changes)", GUILayout.Width(position.width - 10));
+            if (GUILayout.Button("Auto Build: " + (autobuild ? "ON" : "OFF"), buttonStyle2))
+            {
+                autobuild = !autobuild;
+            }
+
+            //Focus the folder
+            if (GUILayout.Button("Save", buttonStyle2))
+            {
+                callback?.Invoke(samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out, autobuild, snapView, autosave, optimizedBuild);
                 Close();
             }
             GUILayout.EndScrollView();

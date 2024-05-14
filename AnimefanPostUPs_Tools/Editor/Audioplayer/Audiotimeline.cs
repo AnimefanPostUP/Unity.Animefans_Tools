@@ -32,7 +32,7 @@ using AnimefanPostUPs_Tools.AudioMixUtils;
 using AnimefanPostUPs_Tools.TimelineView;
 using AnimefanPostUPs_Tools.AudioTrackManager;
 using AnimefanPostUPs_Tools.AudioTrack;
-using  AnimefanPostUPs_Tools.CustomPopup;
+using AnimefanPostUPs_Tools.CustomPopup;
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //CLass Header
@@ -77,6 +77,25 @@ public class Audiotimeline : EditorWindow
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     //Unity Calls
 
+    public void toggleAutoUpdater()
+    {
+
+        audioManager.autobuild = !audioManager.autobuild;
+        dropdownMenu.setValue("Auto Update", audioManager.autobuild);
+    }
+
+    public void checkSave()
+    {
+        if (audioManager.autosave)
+        {
+            //Check if folder exists
+            if (Directory.Exists(targetfolder))
+            {
+                audioManager.SaveJson(targetfolder + "/" + filename + "_autosave.json");
+            }
+        }
+    }
+
     private void OnEnable()
     {
         init_audiomanager();
@@ -90,14 +109,14 @@ public class Audiotimeline : EditorWindow
         setDropdownTextures(dropdownMenu);
         dropdownMenu.AddItem("New", () => { New(); });
         dropdownMenu.AddItem("Load Json", () => { LoadFrom(); });
-        dropdownMenu.AddItem("Quick Save", () => { Save(); });
+        dropdownMenu.AddItem("Save", () => { Save(); });
         dropdownMenu.AddItem("Save As", () => { SaveAt(); });
         dropdownMenu.AddItem("Create Backup", () => { SaveBackup(); });
-        dropdownMenu.AddItem("Quick Render", () => { Render(); });
+        dropdownMenu.AddItem("Render", () => { Render(); });
         dropdownMenu.AddItem("Render As", () => { RenderWavAs(); });
-        dropdownMenu.AddItem("Audiosettings", () => { setRendersettings(); });
-        dropdownMenu.AddItem("Animationsynch", false);
-        dropdownMenu.AddItem("Write Change Only", false);
+        dropdownMenu.AddItem("Settings", () => { setRendersettings(); });
+        dropdownMenu.AddItem("Synch", false);
+        dropdownMenu.AddItem("Auto Render", false, () => { toggleAutoUpdater(); });
 
         //Load the last folder and filename
         string _targetfolder = PlayerPrefs.GetString("AudioTimelineFolder", targetfolder);
@@ -139,7 +158,7 @@ public class Audiotimeline : EditorWindow
     {
 
         //Audiologic
-        bool synch = dropdownMenu.getValue("Animationsynch");
+        bool synch = dropdownMenu.getValue("Synch");
         playAudioLogic(synch);
 
 
@@ -192,7 +211,7 @@ public class Audiotimeline : EditorWindow
         //Create a Button at fixed Position
 
 
-        Texture2D buttonTexture = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 8);
+        Texture2D buttonTexture = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_048, ColorRGBA.grayscale_064, 8);
         GUIStyle buttonStyle = new GUIStyle();
         buttonStyle.normal.background = buttonTexture;
         //Center content
@@ -205,6 +224,7 @@ public class Audiotimeline : EditorWindow
         if (GUI.Button(new Rect((splitviewer.splitPosition / 8 * 6) + 7, 6, 25, 25), buttonContent, buttonStyle))
         {
             Render();
+            checkSave();
         }
 
     }
@@ -220,13 +240,13 @@ public class Audiotimeline : EditorWindow
 
     void setDropdownTextures(DropdownMenu menu)
     {
-        menu.itemButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightred, ColorRGBA.grayscale_025, 8);
+        menu.itemButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.grayscale_064, ColorRGBA.grayscale_025, 8);
         menu.itemButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.grayscale_025, ColorRGBA.none, 8);
-        menu.itemButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_025, 8);
+        menu.itemButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.grayscale_064, ColorRGBA.grayscale_025, 8);
 
-        menu.mainButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 32);
-        menu.mainButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
-        menu.mainButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.lightgreyred, ColorRGBA.grayscale_064, 8);
+        menu.mainButtonNormal = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_048, ColorRGBA.grayscale_064, 8);
+        menu.mainButtonHover = new ColorTextureManager.ColorTextureDummy(TexItemType.Solid, ColorRGBA.grayscale_064, ColorRGBA.grayscale_032, 8);
+        menu.mainButtonActive = new ColorTextureManager.ColorTextureDummy(TexItemType.Gradient_Radial, ColorRGBA.grayscale_128, ColorRGBA.grayscale_064, 8);
 
         menu.backgroundTexture = new ColorTextureManager.ColorTextureDummy(TexItemType.Bordered, ColorRGBA.grayscale_032, ColorRGBA.grayscale_016, 8);
     }
@@ -246,7 +266,7 @@ public class Audiotimeline : EditorWindow
                 //targetfolder is still not valid set the value to the default
                 if (!Directory.Exists(targetfolder))
                 {
-                    dropdownMenu.setValue("Animationsynch", false);
+                    dropdownMenu.setValue("Synch", false);
                 }
             }
 
@@ -254,7 +274,6 @@ public class Audiotimeline : EditorWindow
 
             //Set timeline playback to the current time
             timelineView.displayPlayback = true;
-            audioManager.autobuild = true;
             timelineView.playbackPosition = currentTime;
 
             //detect if the time has changed negative or not at all
@@ -302,8 +321,6 @@ public class Audiotimeline : EditorWindow
         {
             timelineView.displayPlayback = false;
             //Disable autobuild
-            audioManager.autobuild = false;
-
             firstTime = true;
 
             timeStopped();
@@ -316,6 +333,8 @@ public class Audiotimeline : EditorWindow
 
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     //Saving Functions / Popups
+
+
 
 
     //function to Load new Json
@@ -367,11 +386,16 @@ public class Audiotimeline : EditorWindow
         float targetgain_In = audioManager.targetgain_In;
         float targetgain_Out = audioManager.targetgain_Out;
 
-        CustomPopup.ShowWindow((samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out) =>
+        bool setting_autobuild = audioManager.autobuild;
+        bool setting_autosave = audioManager.autosave;
+        bool setting_snapView = audioManager.snapView;
+        bool setting_optimizedBuild = audioManager.optimizedBuild;
+
+        CustomPopup.ShowWindow((samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out, autobuild, autosave, snapView, optimizedBuild) =>
         {
-            audioManager.renderSettings(samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out);
+            audioManager.renderSettings(samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out, autobuild, autosave, snapView, optimizedBuild);
         }, existingSampleRate, existingBitDepth, existingChannels, setting_doNormalizeInput, setting_normalizeInput, setting_doNormalizeOutput, setting_normalizeOutput,
-        targetgain_In, targetgain_Out);
+        targetgain_In, targetgain_Out, setting_autobuild, setting_autosave, setting_snapView, setting_optimizedBuild);
     }
 
 
@@ -386,7 +410,7 @@ public class Audiotimeline : EditorWindow
     public void RenderWavAs()
     {
         //Create File
-        audioManager.createMix(targetfolder, filename, dropdownMenu.getValue("Write Change Only"));
+        audioManager.createMix(targetfolder, filename);
 
 
         //Open file dialog and ask if overwrite
@@ -399,12 +423,12 @@ public class Audiotimeline : EditorWindow
                 //Open dialog for yes or no
                 if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
                 {
-                    audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path), dropdownMenu.getValue("Write Change Only"));
+                    audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
                 }
             }
             else
             {
-                audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path), dropdownMenu.getValue("Write Change Only"));
+                audioManager.createMix(Path.GetDirectoryName(path), Path.GetFileNameWithoutExtension(path));
             }
         }
     }
@@ -428,12 +452,12 @@ public class Audiotimeline : EditorWindow
                 //Open dialog for yes or no
                 if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
                 {
-                    audioManager.createMix(targetfolder, filename, dropdownMenu.getValue("Write Change Only"));
+                    audioManager.createMix(targetfolder, filename);
                 }
             }
             else
             {
-                audioManager.createMix(targetfolder, filename, dropdownMenu.getValue("Write Change Only"));
+                audioManager.createMix(targetfolder, filename);
             }
         }
     }
@@ -739,11 +763,11 @@ public class Audiotimeline : EditorWindow
         if (firstTime)
         {
             firstTime = false;
-            audioManager.createMix(targetfolder, "LiveMixTemp", dropdownMenu.getValue("Write Change Only"));
+            audioManager.createMix(targetfolder, filename + "_auto");
         }
 
         //find LiveMixTemp.wav in the folderpath
-        string path = targetfolder + "/" + "LiveMixTemp" + ".wav";
+        string path = targetfolder + "/" + filename + "_auto" + ".wav";
         //get relative path
         string relativepath = path.Replace(Application.dataPath, "Assets");
 
@@ -765,7 +789,7 @@ public class Audiotimeline : EditorWindow
         //Get the current Animation Window if it exists
 
         GUILayout.BeginHorizontal(GUILayout.Width(widthTimeline));
-        if (timelineView.DrawTimeline(audioManager, widthTimeline, splitviewer.splitPosition, colorTextureManager, Event.current, targetfolder, filename, dropdownMenu.getValue("Write Change Only"))) Repaint();
+        if (timelineView.DrawTimeline(audioManager, widthTimeline, splitviewer.splitPosition, colorTextureManager, Event.current, targetfolder, filename)) Repaint();
         GUILayout.EndHorizontal();
 
     }
@@ -780,8 +804,22 @@ public class Audiotimeline : EditorWindow
         //Scrollview vertical
         EditorGUI.DrawRect(new Rect(0, 0, widthSidePanel, position.height), GetRGBA(ColorRGBA.grayscale_032));
         GUILayout.Space(45); //Spacer for Dropdown
-        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(widthSidePanel));
 
+        Vector2 oldscrollPos = scrollPos;
+        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(widthSidePanel));
+        if (oldscrollPos != scrollPos)
+        {
+            if (audioManager.snapView)
+                timelineView.timelinePosition_Offset.y = -scrollPos.y;
+
+        }
+
+        //reset scrollview if shift is pressed
+        if (Event.current.shift)
+        {
+            scrollPos = new Vector2(0, 0);
+            timelineView.timelinePosition_Offset.y = 0;
+        }
 
         int halfWidth = (int)(widthSidePanel - 20);
 
@@ -789,8 +827,8 @@ public class Audiotimeline : EditorWindow
         GUIStyle buttonStyle = new GUIStyle(GUI.skin.box);
         buttonStyle.fixedWidth = widthSidePanel - 10;
         buttonStyle.fixedHeight = 20;
-        buttonStyle.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
-        buttonStyle.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
+        buttonStyle.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_032, ColorRGBA.grayscale_048, 16);
+        buttonStyle.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.grayscale_048, ColorRGBA.grayscale_064, 8);
         buttonStyle.hover.textColor = Color.white;
         //Create button style
 
@@ -798,34 +836,42 @@ public class Audiotimeline : EditorWindow
         GUIStyle buttonStyletab = new GUIStyle(GUI.skin.box);
         buttonStyletab.fixedWidth = widthSidePanel - 5;
         buttonStyletab.fixedHeight = 55;
-        buttonStyletab.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
-        buttonStyletab.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
+        buttonStyletab.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_032, ColorRGBA.grayscale_048, 16);
+        buttonStyletab.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.grayscale_048, ColorRGBA.grayscale_064, 8);
         buttonStyletab.hover.textColor = Color.white;
 
 
         //Create button style
         GUIStyle buttonStyleicon = new GUIStyle(GUI.skin.box);
-        buttonStyleicon.fixedWidth = 25;
+        buttonStyleicon.fixedWidth = 20;
         buttonStyleicon.fixedHeight = 25;
-        buttonStyleicon.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
-        buttonStyleicon.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
+        buttonStyleicon.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_048, ColorRGBA.grayscale_064, 16);
+        buttonStyleicon.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.grayscale_016, ColorRGBA.none, 8);
         buttonStyleicon.hover.textColor = Color.white;
 
         GUIStyle buttonStyle2 = new GUIStyle(GUI.skin.box);
         buttonStyle2.fixedWidth = widthSidePanel - 10;
         buttonStyle2.fixedHeight = 20;
-        buttonStyle2.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.darkred, ColorRGBA.duskred, 16);
+        buttonStyle2.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.lightgreyred, ColorRGBA.duskred, 16);
         buttonStyle2.margin.right = 0;
         buttonStyle2.padding.right = 0;
+
+
+        GUIStyle buttonStyleText = new GUIStyle(GUI.skin.box);
+        buttonStyleText.fixedWidth = widthSidePanel - 110;
+        buttonStyleText.fixedHeight = 25;
+        buttonStyleText.normal.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.grayscale_048, ColorRGBA.grayscale_064, 16);
+        buttonStyleText.margin.right = 0;
+        buttonStyleText.padding.right = 0;
 
         //General button style
         GUIStyle buttonStyle3 = new GUIStyle(GUI.skin.label);
         buttonStyle3.fixedWidth = widthSidePanel - 10;
         buttonStyle3.fixedHeight = 20;
         //Set background gradient
-        buttonStyle3.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.duskred, ColorRGBA.darkred, 16);
+        buttonStyle3.normal.background = colorTextureManager.LoadTexture(TexItemType.Gradient_Vertical, ColorRGBA.grayscale_025, ColorRGBA.grayscale_032, 16);
         //set highlight gradient
-        buttonStyle3.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.lightgreyred, ColorRGBA.darkred, 8);
+        buttonStyle3.hover.background = colorTextureManager.LoadTexture(TexItemType.Solid, ColorRGBA.grayscale_032, ColorRGBA.grayscale_048, 8);
         //Bold font when hover
         buttonStyle3.hover.textColor = Color.white;
 
@@ -849,10 +895,15 @@ public class Audiotimeline : EditorWindow
             GUILayout.BeginHorizontal();
             //Write 100width label with name
             GUILayout.BeginHorizontal();
-            GUILayout.Label(track.clip.name, GUILayout.Width(
-                Mathf.Max(
-                widthSidePanel - 105, 5)
-            ));
+
+
+
+            if (GUILayout.Button(track.clip.name, buttonStyleText))
+            {
+                //Ping the clip in the project window
+                EditorGUIUtility.PingObject(track.clip);
+
+            }
 
             //Inputfield for init time
 
@@ -865,13 +916,22 @@ public class Audiotimeline : EditorWindow
             if (Mathf.Abs(oldinitTime - track.initTime) > 0.001f)
             {
                 if (audioManager.autobuild)
-                    track.checkUpdate();
+                {
+                    Render();
+                }
+
             }
             // Icons for buttons
             GUIContent removeIcon = EditorGUIUtility.IconContent("d_P4_DeletedLocal"); // Replace with your icon
             GUIContent reloadIcon = EditorGUIUtility.IconContent("d_RotateTool"); // Replace with your icon
             GUIContent clampIcon = EditorGUIUtility.IconContent("d_AudioMixerSnapshot Icon"); // Replace with your icon
+            GUIContent muted = EditorGUIUtility.IconContent("d_scenevis_hidden_hover"); // Replace with your icon
+            GUIContent notmuted = EditorGUIUtility.IconContent("d_scenevis_visible_hover"); // Replace with your icon
 
+            if (GUILayout.Button(track.muted ? muted : notmuted, buttonStyleicon))
+            {
+                track.muted = !track.muted;
+            }
 
             if (GUILayout.Button(removeIcon, buttonStyleicon))
             {
@@ -1014,7 +1074,7 @@ public class Audiotimeline : EditorWindow
             {
                 if (currentsystime > changetime + 1)
                 {
-                    audioManager.createMix(targetfolder, "LiveMixTemp", dropdownMenu.getValue("Write Change Only"));
+                    audioManager.createMix(targetfolder, filename + "_auto");
                     change = false;
 
                 }

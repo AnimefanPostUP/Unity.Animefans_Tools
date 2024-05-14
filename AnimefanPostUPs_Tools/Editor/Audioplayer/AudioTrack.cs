@@ -53,8 +53,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
         private int _oldChannels = 0;
         private int _oldBitDepth = 0;
         private float _length = 0;
-
-
+        public bool muted=false;
         Dictionary<string, int> header;
         public float oldtargetgain = 0;
         public float[][] audioCurve;
@@ -341,11 +340,11 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             // Create a new texture for the waveform using transparent defaultcolor
 
             //Definining Curve Color
-            Color curveColor = new Color(0.6f, 0.3f, 0.3f, 0.1f);
+            Color curveColor = new Color(0.9f, 0.15f, 0.1f, 0.1f);
 
             //Defining background gracient color
-            Color backgroundColor_a = new Color(0.3f, 0.1f, 0.1f, 0f);
-            Color backgroundColor_b = new Color(0.3f, 0.2f, 0.2f, 0.1f);
+            Color backgroundColor_a = new Color(0.1f, 0.1f, 0.1f, 0.1f);
+            Color backgroundColor_b = new Color(0.09f, 0.09f, 0.09f, 0.1f);
 
             //Draw a gradient from top to bottom
             for (int y = 0; y < height; y++)

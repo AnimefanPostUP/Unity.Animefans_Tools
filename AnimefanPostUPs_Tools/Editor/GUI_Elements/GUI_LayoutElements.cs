@@ -352,7 +352,7 @@ namespace AnimefanPostUPs_Tools.GUI_LayoutElements
 
                 if (item.type == DropdownItemType.Option_Bool)
                 {
-                    string icon = item.value ? "P4_CheckOutRemote" : "P4_DeletedRemote";
+                    string icon = item.value ? "P4_CheckOutRemote" : "P4_DeletedLocal";
                     GUI.Label(itemsRect, new GUIContent(item.name, EditorGUIUtility.IconContent(icon).image), style);
                     //Add icon
 
