@@ -77,12 +77,6 @@ public class Audiotimeline : EditorWindow
     //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     //Unity Calls
 
-    public void toggleAutoUpdater()
-    {
-
-        audioManager.autobuild = !audioManager.autobuild;
-        dropdownMenu.setValue("Auto Update", audioManager.autobuild);
-    }
 
     public void checkSave()
     {
@@ -116,7 +110,6 @@ public class Audiotimeline : EditorWindow
         dropdownMenu.AddItem("Render As", () => { RenderWavAs(); });
         dropdownMenu.AddItem("Settings", () => { setRendersettings(); });
         dropdownMenu.AddItem("Synch", false);
-        dropdownMenu.AddItem("Auto Render", false, () => { toggleAutoUpdater(); });
 
         //Load the last folder and filename
         string _targetfolder = PlayerPrefs.GetString("AudioTimelineFolder", targetfolder);
@@ -132,16 +125,20 @@ public class Audiotimeline : EditorWindow
         }
         else { checkFile = false; }
 
-        if (File.Exists(targetfolder + "/" + _filename + ".json"))
+        if (File.Exists(targetfolder + "/" + _filename + "_autosave.json"))
         {
             filename = _filename;
+            //remove _autosave from the filename
+
+            audioManager.LoadJson(targetfolder + "/" + filename + "_autosave.json");
+        }
+        else if (File.Exists(targetfolder + "/" + _filename + ".json"))
+        {
+            filename = _filename;
+            audioManager.LoadJson(targetfolder + "/" + filename + ".json");
         }
         else { checkFile = false; }
 
-        if (checkFile)
-        {
-            audioManager.LoadJson(targetfolder + "/" + filename + ".json");
-        }
     }
 
     private void OnDisable()
@@ -156,6 +153,12 @@ public class Audiotimeline : EditorWindow
 
     private void OnGUI()
     {
+
+        if (audioManager.internalupdate)
+        {
+            //Save the autosave
+            audioManager.SaveJson(targetfolder + "/" + filename + "_autosave.json");
+        }
 
         //Audiologic
         bool synch = dropdownMenu.getValue("Synch");
@@ -182,7 +185,7 @@ public class Audiotimeline : EditorWindow
             //get mouse position
             float mousepos = Event.current.mousePosition.x;
             //calculate relative to window
-            float relative = (mousepos - splitviewer.splitPosition) * 100;
+            float relative = (mousepos - splitviewer.splitPosition / 2) * 100;
 
             // Adjust the offset based on the change in zoom level and the zoom center
             float a = (((position.width - splitviewer.splitPosition - (timelineView.timelinePosition_Offset.x)) / 2)) / 100 * old;
@@ -396,6 +399,18 @@ public class Audiotimeline : EditorWindow
             audioManager.renderSettings(samplerate, bitrate, channels, doNormalizeInput, normalizeThreshold, doNormalizeOutput, normalizeOutputThreshold, targetgain_In, targetgain_Out, autobuild, autosave, snapView, optimizedBuild);
         }, existingSampleRate, existingBitDepth, existingChannels, setting_doNormalizeInput, setting_normalizeInput, setting_doNormalizeOutput, setting_normalizeOutput,
         targetgain_In, targetgain_Out, setting_autobuild, setting_autosave, setting_snapView, setting_optimizedBuild);
+
+        if (audioManager.autosave)
+        {
+            Render();
+        }
+
+        if (audioManager.autobuild)
+        {
+            Render();
+        }
+
+
     }
 
 
@@ -445,21 +460,31 @@ public class Audiotimeline : EditorWindow
             }
 
             //Create File
+            string n="";
 
-            //If file exists
-            if (File.Exists(targetfolder + "/" + filename + ".wav") && false)
-            if (File.Exists(targetfolder + "/" + filename + ".wav") && false)
+            if(audioManager.autosave)
             {
-                //Open dialog for yes or no
-                if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
-                {
-                    audioManager.createMix(targetfolder, filename);
-                }
+                n = filename + "_autosave";
             }
             else
             {
-                audioManager.createMix(targetfolder, filename);
+                n = filename;
             }
+
+            //If file exists
+            if (File.Exists(targetfolder + "/" + n + ".wav") && false)
+                if (File.Exists(targetfolder + "/" + n + ".wav") && false)
+                {
+                    //Open dialog for yes or no
+                    if (EditorUtility.DisplayDialog("File Exists", "Do you want to overwrite the file?", "Yes", "No"))
+                    {
+                        audioManager.createMix(targetfolder, n);
+                    }
+                }
+                else
+                {
+                    audioManager.createMix(targetfolder, n);
+                }
         }
     }
 
@@ -503,8 +528,16 @@ public class Audiotimeline : EditorWindow
         if (!Directory.Exists(targetfolder))
         {
             targetfolder = EditorUtility.OpenFolderPanel("Select Project Folder", targetfolder, "");
-        }
 
+
+        }
+        else
+        {
+            if (audioManager.autosave)
+            {
+                audioManager.SaveJson(targetfolder + "/" + filename + "_autosave.json");
+            }
+        }
 
         if (File.Exists(targetfolder + "/" + filename + ".json"))
         {
@@ -518,6 +551,9 @@ public class Audiotimeline : EditorWindow
         {
             audioManager.SaveJson(targetfolder + "/" + filename + ".json");
         }
+
+        //Save autosave aswell
+
 
 
 
@@ -1030,12 +1066,8 @@ public class Audiotimeline : EditorWindow
             if (Directory.Exists(targetfolder))
             {
                 //focus in project window
-                //check if file exists
-                if (File.Exists(targetfolder + "/" + filename + ".json"))
-                {
-                    //focus in project window
-                    EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
-                }
+                EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
+               
             }
         }
 
@@ -1059,6 +1091,21 @@ public class Audiotimeline : EditorWindow
             {
                 //focus in project window
                 //check if file exists
+                if (audioManager.autobuild)
+                {
+                    if (File.Exists(targetfolder + "/" + filename + "_auto.wav"))
+                    {
+                        //focus in project window
+                        EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath + "/" + filename + "_auto.wav"));
+                    }
+                    else if (File.Exists(targetfolder + "/" + filename + ".wav"))
+                    {
+                        //focus in project window
+                        EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath + "/" + filename + ".wav"));
+                    }
+
+                }
+                else
                 if (File.Exists(targetfolder + "/" + filename + ".wav"))
                 {
                     //focus in project window
@@ -1069,12 +1116,20 @@ public class Audiotimeline : EditorWindow
 
         //Get current startup time 
 
-        if (change)
+        if (change && audioManager.autobuild)
         {
             if (!changetrigger)
             {
                 if (currentsystime > changetime + 1)
                 {
+                    if (audioManager.autosave)
+                    {
+                        //Check if folder exists
+                        if (Directory.Exists(targetfolder))
+                        {
+                            audioManager.SaveJson(targetfolder + "/" + filename + "_autosave.json");
+                        }
+                    }
                     audioManager.createMix(targetfolder, filename + "_auto");
                     change = false;
 

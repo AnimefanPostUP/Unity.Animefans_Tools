@@ -88,9 +88,12 @@ namespace AnimefanPostUPs_Tools.TimelineView
                 if (audiotrackmgr.audioTracks.Count > 0 && amgr.autobuild)
                 {
                     //amgr.createMix(targetfolder, filename + ".wav");
-                    amgr.createMix(targetfolder, "LiveMixTemp");
+                    amgr.createMix(targetfolder, filename + "_auto");
+                    amgr.SaveJson(targetfolder+"/"+filename+"_autosave.json");
                     AssetDatabase.Refresh();
                 }
+
+             
             }
             else
             {
@@ -163,8 +166,8 @@ namespace AnimefanPostUPs_Tools.TimelineView
                     doOverlay = true;
 
 
-                    timelinePosition_Offset.x += (xPos + (widthTimeline) / 2 - current.mousePosition.x) / 50;
-                    timelinePosition_Offset.y += ((300) / 2 - current.mousePosition.y) / 50;
+                    timelinePosition_Offset.x += (xPos + (widthTimeline) / 2 - current.mousePosition.x) / 100;
+                    timelinePosition_Offset.y += ((300) / 2 - current.mousePosition.y) / 100;
                     //maxTime * timelinezoom.x
                     timelinePosition_Offset.x = (float)Mathf.Clamp(timelinePosition_Offset.x, -(maxTime * timelinezoom.x), (maxTime * timelinezoom.x));
                     doRepaint = true;
@@ -183,16 +186,11 @@ namespace AnimefanPostUPs_Tools.TimelineView
             }
 
 
-            float scalingX = 10;
-            Debug.Log("timelinezoom" + timelinezoom.x);
-
-            scalingX = (((1000 - (timelinezoom.x)) / 1000));
-            Debug.Log("scaling" + scalingX);
-
-            if (scalingX < 1) scalingX = 1;
-            int scaling = (int)(scalingX * 10);
-            scaling = scaling - scaling % 5;
-            if (scaling < 1) scaling = 1;
+            int scaling = 10;
+            //if (timelinezoom.x > 300) scaling = 20;
+            //if (timelinezoom.x > 500) scaling = 30;
+            //if (timelinezoom.x > 800) scaling = 40;
+            //if (timelinezoom.x > 900) scaling = 50;
             //Draw gray background 
             //EditorGUI.DrawRect(new Rect(0, 0, maxTime*100, trackHeight * trackCount), GetRGBA(ColorRGBA.grayscale_016));
             GUILayout.BeginArea(new Rect(xPos + timelinePosition_Offset.x, timelinePosition_Offset.y, maxTime * timelinezoom.x, (trackHeight + 10) * (trackCount + 10)));
@@ -230,7 +228,27 @@ namespace AnimefanPostUPs_Tools.TimelineView
             boxstyle.hover.background = colormgr.LoadTexture(TexItemType.Gradient_Horizontal, ColorRGBA.grayscale_048, ColorRGBA.grayscale_032, 32);
 
 
+            //Draw the audiomanager.buildmix waveform
+            if (amgr.buildTrackpreview != null)
+            {
+                //Draw Image / Waveform
+                //Check if first pixel is white
+                if (amgr.displayPreview)
+                {
+                    
+                    EditorGUI.DrawPreviewTexture(new Rect(0, 15, amgr.previewLength * timelinezoom.x, trackHeight -15), amgr.buildTrackpreview, null, ScaleMode.StretchToFill);
+                    //Add a Button to the Start to X
 
+                    EditorGUI.LabelField(new Rect(19, 18, 100, 16), "Preview");
+                    if (GUI.Button(new Rect(4, 18, 20, 20), "X"
+                    , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.white } }
+                    ))
+                    {
+                        amgr.displayPreview = false;
+                    }
+                }
+
+            }
 
 
 
@@ -316,37 +334,23 @@ namespace AnimefanPostUPs_Tools.TimelineView
                 }
             }
 
-            //Draw the audiomanager.buildmix waveform
-            if (amgr.buildTrackpreview != null)
-            {
-                //Draw Image / Waveform
-                //Check if first pixel is white
-                if (amgr.displayPreview)
-                {
-                    EditorGUI.DrawPreviewTexture(new Rect(0, 0, amgr.previewLength * timelinezoom.x, trackHeight + 3), amgr.buildTrackpreview, null, ScaleMode.StretchToFill);
-                    //Add a Button to the Start to X
-                    if (GUI.Button(new Rect(4, 18, 20, 20), "X"
-                    , new GUIStyle() { normal = new GUIStyleState() { textColor = Color.grey } }
-                    ))
-                    {
-                        amgr.displayPreview = false;
-                    }
-                }
-
-            }
-
-
-            GUILayout.EndHorizontal();
-            GUILayout.EndScrollView();
-
-            GUILayout.EndArea();
-
 
             //Draw line on playbackPosition
             if (displayPlayback)
             {
                 EditorGUI.DrawRect(new Rect(playbackPosition * timelinezoom.x, 0, 2, (trackHeight + 10) * (trackCount + 10)), GetRGBA(ColorRGBA.orange));
             }
+
+
+
+            GUILayout.EndHorizontal();
+
+                //200 units spacing
+                GUILayout.Space(200);
+            GUILayout.EndScrollView();
+
+            GUILayout.EndArea();
+
 
 
 

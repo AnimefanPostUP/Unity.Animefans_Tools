@@ -44,6 +44,8 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
         public bool autosave = false;
         public bool optimizedBuild = false;
 
+        public bool internalupdate=false;
+
         public byte[][] mixedData;
         public int totallength = 0;
 
@@ -73,6 +75,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
                 track.marked_dirty_preview = true;
                 track.marked_dirty_settings = true;
                 track.marked_dirty_time = true;
+                track.marked_dirty_render = true;
 
                 track.checkUpdate();
             }
@@ -85,26 +88,26 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
             this.autosave = autosave;
             this.optimizedBuild = optimizedBuild;
 
-            setting_normalizationFac_Input = normalizationFacInput;
-            setting_normalizationFac_Output = normalizationFacOutput;
-            setting_doNormalizeInput = normalizeInput;
-            setting_doNormalizeOutput = normalizeOutput;
+            this.setting_normalizationFac_Input = normalizationFacInput;
+            this.setting_normalizationFac_Output = normalizationFacOutput;
+            this.setting_doNormalizeInput = normalizeInput;
+            this.setting_doNormalizeOutput = normalizeOutput;
 
-            targetSampleRate = samplerate;
-            targetBitDepth = bitrate;
-            targetChannels = channels;
+            this.targetSampleRate = samplerate;
+            this.targetBitDepth = bitrate;
+            this.targetChannels = channels;
 
             this.targetgain_In = targetgain_In;
             this.targetgain_Out = targetgain_Out;
-
-            autobuild = this.autobuild;
-            snapView = this.snapView;
-            autosave = this.autosave;
-            optimizedBuild = this.optimizedBuild;
+            
+            if (autosave)
+            {
+                internalupdate=true;
+            }
 
             reloadAudioData();
         }
-       
+
 
         //addAudiotrack
         public void addAudioTrack(AudioTrack track)
@@ -125,7 +128,12 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
         public void checkForJson(string filePath, string filename)
         {
             //Try to find the json file in the current path using the filename
-            if (File.Exists(filePath + "/" + filename + ".json"))
+            if (File.Exists(filePath + "/" + filename + "_auto.json"))
+            {
+                //Load the json file
+                LoadJson(filePath + "/" + filename + "_auto.json");
+            }
+            else if (File.Exists(filePath + "/" + filename + ".json"))
             {
                 //Load the json file
                 LoadJson(filePath + "/" + filename + ".json");
@@ -158,13 +166,13 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
                 endsample = int.MinValue;
                 for (int i = 0; i < audioTracks.Count; i++)
                 {
-                    Debug.Log("Checking track" + i + " for render dirty");
+                    //Debug.Log("Checking track" + i + " for render dirty");
                     if (audioTracks[i].marked_dirty_render)
                     {
-                        Debug.Log("marked render dirty");
+                        //Debug.Log("marked render dirty");
                         if (audioTracks[i].old_initTime != audioTracks[i].initTime)
                         {
-                            Debug.Log("inittime");
+                            //Debug.Log("inittime");
                             audioTracks[i].marked_dirty_time = false;
                             counter++;
 
@@ -191,7 +199,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
                 if (endsample > mixedData[0].Length) optimized = false;
             }
 
-            Debug.Log(counter + " Tracks have been updated");
+            //Debug.Log(counter + " Tracks have been updated");
 
             //disable if no changes
             if (counter == 0 || !optimized)
@@ -238,7 +246,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
             this.displayPreview = true;
 
             //Debug file exist
-            Debug.Log("File Exist: " + File.Exists(filePath + "/" + filename + ".wav"));
+            //Debug.Log("File Exist: " + File.Exists(filePath + "/" + filename + ".wav"));
 
 
 
@@ -310,7 +318,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
             if (renderstartsample == -1) { renderstartsample = 0; filesizeSufficient = false; }
             if (renderendsample == -1) { renderendsample = numBytes; filesizeSufficient = false; }
 
-            Debug.Log("Renderstartsample: " + renderstartsample + " Renderendsample: " + renderendsample);
+            //Debug.Log("Renderstartsample: " + renderstartsample + " Renderendsample: " + renderendsample);
 
 
 
@@ -376,7 +384,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
                     }
                 }
             }
-            Debug.Log("Bytes Rendered:" + totalcounter);
+            //Debug.Log("Bytes Rendered:" + totalcounter);
             return (filesizeSufficient, mixedData);
         }
 
@@ -608,25 +616,25 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
                     if (audioData.muted != null)
                         if (audioData.muted.Length > i)
                             audioTrack.muted = audioData.muted[i];
-                
+
                     audioTracks.Add(audioTrack);
                 }
             }
 
             //set the normalization settings
-             this.setting_normalizationFac_Input = audioData.normalizationFacInput;
-             this.setting_normalizationFac_Output = audioData.normalizationFacOutput;
-             this.setting_doNormalizeInput = audioData.doNormalizeInput;
-             this.setting_doNormalizeOutput = audioData.doNormalizeOutput;
+            this.setting_normalizationFac_Input = audioData.normalizationFacInput;
+            this.setting_normalizationFac_Output = audioData.normalizationFacOutput;
+            this.setting_doNormalizeInput = audioData.doNormalizeInput;
+            this.setting_doNormalizeOutput = audioData.doNormalizeOutput;
 
-             this.targetgain_In = audioData.targetgain_In;
-             this.targetgain_Out = audioData.targetgain_Out;
+            this.targetgain_In = audioData.targetgain_In;
+            this.targetgain_Out = audioData.targetgain_Out;
 
             //autobuild, snapview, autosave
-             this.autobuild = audioData.autosave;
-             this.snapView = audioData.snapView;
-             this.autosave = audioData.autosave;
-             this.optimizedBuild = audioData.optimizedBuild;
+            this.autobuild = audioData.autosave;
+            this.snapView = audioData.snapView;
+            this.autosave = audioData.autosave;
+            this.optimizedBuild = audioData.optimizedBuild;
             reloadAudioData();
 
         }
@@ -653,9 +661,9 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
                 //settingsd
                 autobuild = this.autobuild,
-                snapView =  this.snapView,
-                autosave =  this.autosave,
-                optimizedBuild =  this.optimizedBuild
+                snapView = this.snapView,
+                autosave = this.autosave,
+                optimizedBuild = this.optimizedBuild
             };
 
             for (int i = 0; i < audioTracks.Count; i++)
