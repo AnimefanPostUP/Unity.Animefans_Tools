@@ -5,6 +5,8 @@ namespace AnimefanPostUPs_Tools.AudioMixUtils
     using System.Collections.Generic;
     using System.Linq;
     using UnityEngine;
+    //Use mathlerp
+    using Math = UnityEngine.Mathf;
     public static class AudioMixUtils
     {
 
@@ -30,10 +32,11 @@ namespace AnimefanPostUPs_Tools.AudioMixUtils
             }
 
             float currentMax = audioDataFloat.Max(Math.Abs);
-            float normalizationFactor =  strength * (targetMax / currentMax+0.000001f );
+            float normalizationFactor = (targetMax / currentMax+0.000001f );
+            Debug.Log("CurrentMax: " + currentMax + " NormalizationFactor: " + normalizationFactor);
             for (int i = 0; i < audioDataFloat.Length; i++)
             {
-                audioDataFloat[i] *= normalizationFactor;
+                audioDataFloat[i] *= Math.Lerp(1, normalizationFactor, strength);
             }
 
             // Convert back to byte array

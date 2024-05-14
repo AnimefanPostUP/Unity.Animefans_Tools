@@ -64,6 +64,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
                 track.targetChannels = targetChannels;
                 track.setting_doNormalizeInput = setting_doNormalizeInput;
                 track.setting_normalizationFac_Input = setting_normalizationFac_Input;
+                track.targetgain_scaling = targetgain_In;
 
                 track.checkUpdate();
             }
@@ -135,42 +136,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
         }
 
-        //Load Json
-        public void LoadJson(string path)
-        {
-            // Load the Json File
-            string json = File.ReadAllText(path);
-            AudioData audioData = JsonUtility.FromJson<AudioData>(json);
 
-            // Clear the audioTracks list
-            audioTracks.Clear();
-
-            // Try to find and add the Clips
-            for (int i = 0; i < audioData.ClipPaths.Length; i++)
-            {
-                AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioData.ClipPaths[i]);
-                if (clip != null)
-                {
-                    AudioTrack audioTrack = new AudioTrack(clip);
-                    if (audioData.InitTimes.Length > i)
-                        audioTrack.initTime = audioData.InitTimes[i];
-                    if (audioData.targetgains != null)
-                        if (audioData.targetgains.Length > i)
-                            audioTrack.targetgain = audioData.targetgains[i];
-                    audioTracks.Add(audioTrack);
-                }
-            }
-
-            //set the normalization settings
-            setting_normalizationFac_Input = audioData.normalizationFacInput;
-            setting_normalizationFac_Output = audioData.normalizationFacOutput;
-            setting_doNormalizeInput = audioData.doNormalizeInput;
-            setting_doNormalizeOutput = audioData.doNormalizeOutput;
-
-            targetgain_In = audioData.targetgain_In;
-            targetgain_Out = audioData.targetgain_Out;
-
-        }
 
         public void createMix(string filePath, string filename, bool optimized)
         {
@@ -180,7 +146,8 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
 
 
-            //iterate Tracks:
+            //iterate Tracks to Check for Updates
+
             for (int i = 0; i < audioTracks.Count; i++)
             {
                 audioTracks[i].checkUpdate();
@@ -188,14 +155,13 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
 
             byte[][] mixedDataBuffer = null;
-
             mixedData = MixAudioBytesCombined();
-
             if (setting_doNormalizeOutput)
             {
                 int maxvalue = (int)Math.Pow(2, targetBitDepth) - 1;
+                if (targetBitDepth>8) maxvalue=maxvalue/2;
                 for (int i = 0; i < mixedData.Length; i++)
-                    mixedData[i] = AudioMixUtils.Normalize(mixedData[i], targetBitDepth, targetBitDepth > 8, setting_normalizationFac_Output * maxvalue, setting_normalizationFac_Output);
+                    mixedData[i] = AudioMixUtils.Normalize(mixedData[i], targetBitDepth, targetBitDepth > 8, maxvalue, setting_normalizationFac_Output);
             }
 
 
@@ -265,6 +231,44 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
             }
         }
 
+        //Load Json
+        public void LoadJson(string path)
+        {
+            // Load the Json File
+            string json = File.ReadAllText(path);
+            AudioData audioData = JsonUtility.FromJson<AudioData>(json);
+
+            // Clear the audioTracks list
+            audioTracks.Clear();
+
+            // Try to find and add the Clips
+            for (int i = 0; i < audioData.ClipPaths.Length; i++)
+            {
+                AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioData.ClipPaths[i]);
+                if (clip != null)
+                {
+                    AudioTrack audioTrack = new AudioTrack(clip);
+                    if (audioData.InitTimes.Length > i)
+                        audioTrack.initTime = audioData.InitTimes[i];
+                    if (audioData.targetgains != null)
+                        if (audioData.targetgains.Length > i)
+                            audioTrack.targetgain = audioData.targetgains[i];
+                    audioTracks.Add(audioTrack);
+                }
+            }
+
+            //set the normalization settings
+            setting_normalizationFac_Input = audioData.normalizationFacInput;
+            setting_normalizationFac_Output = audioData.normalizationFacOutput;
+            setting_doNormalizeInput = audioData.doNormalizeInput;
+            setting_doNormalizeOutput = audioData.doNormalizeOutput;
+
+            targetgain_In = audioData.targetgain_In;
+            targetgain_Out = audioData.targetgain_Out;
+            reloadAudioData();
+
+        }
+
         public void SaveJson(string filePath)
         {
 
@@ -274,9 +278,9 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
                 InitTimes = new float[audioTracks.Count],
                 targetgains = new float[audioTracks.Count],
                 OutputFilePath = filePath,
-                OutputFileName = Path.GetFileNameWithoutExtension(filePath)
+                OutputFileName = Path.GetFileNameWithoutExtension(filePath),
                 //Store Noramlization settings
-                ,
+           
                 normalizationFacInput = setting_normalizationFac_Input,
                 normalizationFacOutput = setting_normalizationFac_Output,
                 doNormalizeInput = setting_doNormalizeInput,
@@ -448,7 +452,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
             return mixedData;
         }
 
-       
+
 
 
 
@@ -645,31 +649,10 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
                     }
                 }
             }
-
-            //Debug
-
-
-            //ReportAudioData(audioData[0], "Output All");
-
-            init_MixedClipData(filePath, filename);
-
-
             fileStream.Close();
-            //Debug.Log("File Written: " + filePath);
         }
 
-        public void init_MixedClipData(string filePath, string filename)
-        {
-            //Load the file
-            //Get relative path
-            string relativePath = filePath.Substring(filePath.IndexOf("Assets"));
-            //AudioClip buildClip = AssetDatabase.LoadAssetAtPath<AudioClip>(relativePath);
-            //Add the clip to the list
-            //if (buildClip != null)
-            //{
-            //AudioTrack newAudioTrack = new AudioTrack(buildClip);
-            //}
-        }
+
 
         //report average and max from audio data byte array
         public void ReportAudioData(byte[] bytedata, string name = "")
