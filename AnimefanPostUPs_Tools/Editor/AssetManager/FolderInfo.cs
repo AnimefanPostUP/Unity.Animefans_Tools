@@ -69,9 +69,9 @@ namespace AnifansAssetManager.FolderInfo
         public bool displayNames = false;
         public int backgroundtexture = 0;
 
-        public FileTypes shownTypes =  FileTypes.Prefab | FileTypes.Scene | FileTypes.Material | FileTypes.Texture | FileTypes.Model | FileTypes.Animation | FileTypes.Audio | FileTypes.Script | FileTypes.Shader | FileTypes.Other;
+        public FileTypes shownTypes = FileTypes.Prefab | FileTypes.Scene | FileTypes.Material | FileTypes.Texture | FileTypes.Model | FileTypes.Animation | FileTypes.Audio | FileTypes.Script | FileTypes.Shader | FileTypes.Other;
         public bool showFolders = true;
-        public int previewResolution=64;
+        public int previewResolution = 64;
 
         public FolderInfo(string path, string name)
         {
@@ -111,13 +111,88 @@ namespace AnifansAssetManager.FolderInfo
 
         //Function to reload all Files of the Folders
 
-        private void OnAssetChanged(string assetPath)
+        private void OnAssetChanged(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
-            Debug.Log("Asset Changed: " + assetPath);
-            if (assetPath.Contains(path))
+            findNewFiles();
+            removeMovedFiles();
+            removeDeletedFiles(deletedAssets);
+
+
+        }
+
+        public async void removeDeletedFiles(string[] deletedAssets)
+        {
+            //check if the file is inside files array
+            foreach (string path in deletedAssets)
             {
-                reloadFiles();
+                ew_FileInfo file = files.Find(x => x.path == path);
+                if (file != null)
+                {
+                    //Delete the preview
+                    if (file.preview != null)
+                    {
+                        UnityEngine.Object.DestroyImmediate(file.preview);
+                    }
+                    files.Remove(file);
+                }
             }
+        }
+
+        public async void removeMovedFiles()
+        {
+
+            // Iterate over all files
+            foreach (ew_FileInfo file in files)
+            {
+                // Convert Unity relative path to system absolute path
+                string absolutePath = Path.GetFullPath(file.path);
+
+                // Check if the file still exists at the path
+                if (!System.IO.File.Exists(absolutePath))
+                {
+                    // Delete the preview
+                    if (file.preview != null)
+                    {
+                        UnityEngine.Object.DestroyImmediate(file.preview);
+                    }
+
+                    // Remove the file from the list
+                    files.Remove(file);
+                }
+            }
+
+        }
+
+        public async void findNewFiles()
+        {
+
+            //Get all Files in the Folder
+            string[] assetGuids = AssetDatabase.FindAssets("", new[] { path });
+
+            //Loop through all Files
+
+            int countervar = 0;
+            foreach (string guid in assetGuids)
+            {
+
+                //Break if the file is already in the list
+                if (files.Exists(x => x.guid == guid))
+                {
+                    continue;
+                }
+
+                //Debug.Log("Loading: " + guid);
+                string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                await addFile(assetPath, guid);
+                countervar++;
+                if (countervar > 2000)
+                {
+                    Debug.Log("To many Files in Folder: " + path);
+                    break;
+                }
+            }
+            setResolutions();
+            generateProxyNames();
         }
 
 
@@ -128,7 +203,7 @@ namespace AnifansAssetManager.FolderInfo
             //DestroyInstant all Preview Textures if they exist
             foreach (ew_FileInfo file in files)
             {
-                
+
                 if (file.preview != null)
                 {
                     UnityEngine.Object.DestroyImmediate(file.preview);
@@ -153,7 +228,7 @@ namespace AnifansAssetManager.FolderInfo
                 if (countervar > 2000)
                 {
                     Debug.Log("To many Files in Folder: " + path);
-                    break;                  
+                    break;
                 }
             }
             setResolutions();
@@ -190,59 +265,59 @@ namespace AnifansAssetManager.FolderInfo
 
 
 
-       public string[] RemoveCommonParts(string[] strings)
-{
-    var splitStrings = strings.Select(str =>
-    {
-        var lastUnderscoreIndex = str.LastIndexOf('_');
-        var prefix = lastUnderscoreIndex >= 0 ? str.Substring(0, lastUnderscoreIndex) : str;
-        var suffix = lastUnderscoreIndex >= 0 ? str.Substring(lastUnderscoreIndex) : "";
-        var numberParts = Regex.Split(prefix, @"\D+").Where(part => !string.IsNullOrEmpty(part)).ToList();
-        var nonNumberParts = Regex.Split(prefix, @"\d+").Where(part => !string.IsNullOrEmpty(part)).ToList();
-        return new { nonNumberParts, numberParts, suffix };
-    }).ToList();
-
-    var commonParts = new HashSet<string>();
-
-    foreach (var strParts in splitStrings)
-    {
-        foreach (var part in strParts.nonNumberParts)
+        public string[] RemoveCommonParts(string[] strings)
         {
-            commonParts.Add(part);
-        }
-    }
-
-    for (int i = 0; i < splitStrings.Count; i++)
-    {
-        var filteredParts = splitStrings[i].nonNumberParts.Where(part => !commonParts.Contains(part)).ToList();
-        splitStrings[i] = new 
-        { 
-            nonNumberParts = filteredParts.Count > 0 ? filteredParts : new List<string> { "..." }, 
-            numberParts = splitStrings[i].numberParts, 
-            suffix = splitStrings[i].suffix 
-        };
-    }
-
-    for (int i = 0; i < strings.Length; i++)
-    {
-        var nonNumberParts = splitStrings[i].nonNumberParts;
-        var numberParts = splitStrings[i].numberParts;
-        var suffix = splitStrings[i].suffix;
-        var newStr = "";
-        for (int j = 0; j < nonNumberParts.Count; j++)
-        {
-            newStr += nonNumberParts[j];
-            if (j < numberParts.Count)
+            var splitStrings = strings.Select(str =>
             {
-                newStr += numberParts[j];
-            }
-        }
-        newStr += suffix;
-        strings[i] = newStr;
-    }
+                var lastUnderscoreIndex = str.LastIndexOf('_');
+                var prefix = lastUnderscoreIndex >= 0 ? str.Substring(0, lastUnderscoreIndex) : str;
+                var suffix = lastUnderscoreIndex >= 0 ? str.Substring(lastUnderscoreIndex) : "";
+                var numberParts = Regex.Split(prefix, @"\D+").Where(part => !string.IsNullOrEmpty(part)).ToList();
+                var nonNumberParts = Regex.Split(prefix, @"\d+").Where(part => !string.IsNullOrEmpty(part)).ToList();
+                return new { nonNumberParts, numberParts, suffix };
+            }).ToList();
 
-    return strings;
-}
+            var commonParts = new HashSet<string>();
+
+            foreach (var strParts in splitStrings)
+            {
+                foreach (var part in strParts.nonNumberParts)
+                {
+                    commonParts.Add(part);
+                }
+            }
+
+            for (int i = 0; i < splitStrings.Count; i++)
+            {
+                var filteredParts = splitStrings[i].nonNumberParts.Where(part => !commonParts.Contains(part)).ToList();
+                splitStrings[i] = new
+                {
+                    nonNumberParts = filteredParts.Count > 0 ? filteredParts : new List<string> { "..." },
+                    numberParts = splitStrings[i].numberParts,
+                    suffix = splitStrings[i].suffix
+                };
+            }
+
+            for (int i = 0; i < strings.Length; i++)
+            {
+                var nonNumberParts = splitStrings[i].nonNumberParts;
+                var numberParts = splitStrings[i].numberParts;
+                var suffix = splitStrings[i].suffix;
+                var newStr = "";
+                for (int j = 0; j < nonNumberParts.Count; j++)
+                {
+                    newStr += nonNumberParts[j];
+                    if (j < numberParts.Count)
+                    {
+                        newStr += numberParts[j];
+                    }
+                }
+                newStr += suffix;
+                strings[i] = newStr;
+            }
+
+            return strings;
+        }
 
 
 
@@ -283,15 +358,12 @@ namespace AnifansAssetManager.FolderInfo
     }
     public class AssetChangeDetector : AssetPostprocessor
     {
-        public static event Action<string> AssetChanged;
+        public static event Action<string[], string[], string[], string[]> AssetChanged;
 
         private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
-            // Trigger the event for all changed assets
-            foreach (string asset in importedAssets.Concat(deletedAssets).Concat(movedAssets).Concat(movedFromAssetPaths))
-            {
-                AssetChanged?.Invoke(asset);
-            }
+
+            AssetChanged?.Invoke(importedAssets, deletedAssets, movedAssets, movedFromAssetPaths);
         }
     }
 
