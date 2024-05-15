@@ -128,10 +128,10 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
         public void checkForJson(string filePath, string filename)
         {
             //Try to find the json file in the current path using the filename
-            if (File.Exists(filePath + "/" + filename + "_auto.json"))
+            if (File.Exists(filePath + "/" + filename + "_autosave.json"))
             {
                 //Load the json file
-                LoadJson(filePath + "/" + filename + "_auto.json");
+                LoadJson(filePath + "/" + filename + "_autosave.json");
             }
             else if (File.Exists(filePath + "/" + filename + ".json"))
             {
@@ -369,7 +369,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
                     //Adjust Value based on amounts of Tracks that Contributed
                     if (counter == 0) { counter = 1; }
-                    long mixedSample = sum / counter;
+                    long mixedSample = sum / numTracks/2;
                     counter = 0;
 
                     byte[] mixedSampleBytes = new byte[bytesPerSample];

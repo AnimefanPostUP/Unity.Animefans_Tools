@@ -31,7 +31,7 @@ namespace AnimefanPostUPs_Tools.AudioMixUtils
             }
 
             float currentMax = audioDataFloat.Max(Math.Abs);
-            float normalizationFactor = (targetMax / currentMax+0.000001f );
+            float normalizationFactor = ((targetMax) / (currentMax)+0.000001f);
             //Debug.Log("CurrentMax: " + currentMax + " NormalizationFactor: " + normalizationFactor);
             for (int i = 0; i < audioDataFloat.Length; i++)
             {
