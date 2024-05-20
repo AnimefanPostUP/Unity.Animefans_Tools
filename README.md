@@ -70,6 +70,8 @@ find all your Textures easly
 - **Ping:** Audioclips (Tracks Sidepanel Label)
 - **Ping:** Json,Sourcefolder, Render
 
+- **Waveform** Raw Display of the Aplitudes, when Normalization is Enabled, the Red Color Shows the Normalized and Adjusted Data and the Gray is the Resampled unadjusted Data
+
 </br></br></br>
 
 
