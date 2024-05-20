@@ -61,6 +61,10 @@ find all your Textures easly
 - **Reload** Track Data/Previews (2 Arrows)
 - **Snap** Track to 0 (Yellow Arrow in a Box)
 
+### Dragging:
+- **Dragging Track:** (Left Mouse Drag)
+- **Dragging Snap Start:** by holding Shift when Dragging
+- **Dragging Snap End:** by holding Shift when Dragging
 
 ### Pinging:
 - **Ping:** Audioclips (Tracks Sidepanel Label)
