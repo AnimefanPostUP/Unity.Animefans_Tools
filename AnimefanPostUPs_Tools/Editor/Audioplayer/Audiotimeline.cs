@@ -797,9 +797,9 @@ public class Audiotimeline : EditorWindow
     private AudioClip getMixClip()
     {
 
-        string addition="";
+        string addition = "";
 
-        if (audioManager.autobuild) addition="_auto";
+        if (audioManager.autobuild) addition = "_auto";
 
         if (firstTime)
         {
@@ -1041,13 +1041,30 @@ public class Audiotimeline : EditorWindow
         GUILayout.EndHorizontal();
         GUILayout.Space(15);
 
-        int index = targetfolder.IndexOf("Assets");
-        if (index >= 0)
+        int index2 = targetfolder.IndexOf("Assets");
+        string   folderpathrelative = targetfolder;
+        if (index2 >= 0)
         {
-            GUILayout.Label("\\" + targetfolder.Substring(index));
+            folderpathrelative=targetfolder.Substring(index2);
+            GUILayout.Label("\\" + folderpathrelative);
+        } 
+                
+        GUILayout.Label(targetfolder);
+
+        if (GUILayout.Button("" + filename, buttonStyle))
+        {
+            string relativePath= targetfolder.Replace(Application.dataPath, "Assets");
+            //ping the json file if it exists in the target folder
+            if (File.Exists(targetfolder + "/" + filename + "_autosave.json"))
+            {
+                EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(folderpathrelative + "/" + filename + "_autosave.json"));
+            }
+            else if (File.Exists(targetfolder + "/" + filename + ".json"))
+            {
+                EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(folderpathrelative + "/" + filename + ".json"));
+            }
         }
 
-        GUILayout.Label("" + filename);
 
         //30 spacer
         GUILayout.Space(15);
@@ -1069,7 +1086,9 @@ public class Audiotimeline : EditorWindow
 
             if (Directory.Exists(targetfolder))
             {
-                //focus in project window
+                int index = targetfolder.IndexOf("Assets");
+                relativepath = targetfolder.Substring(index);
+
                 EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(relativepath));
 
             }

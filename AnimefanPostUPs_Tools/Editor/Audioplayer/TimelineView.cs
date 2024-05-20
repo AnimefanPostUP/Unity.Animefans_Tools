@@ -89,11 +89,11 @@ namespace AnimefanPostUPs_Tools.TimelineView
                 {
                     //amgr.createMix(targetfolder, filename + ".wav");
                     amgr.createMix(targetfolder, filename + "_auto");
-                    amgr.SaveJson(targetfolder+"/"+filename+"_autosave.json");
+                    amgr.SaveJson(targetfolder + "/" + filename + "_autosave.json");
                     AssetDatabase.Refresh();
                 }
 
-             
+
             }
             else
             {
@@ -112,7 +112,34 @@ namespace AnimefanPostUPs_Tools.TimelineView
 
                         foreach (var draggedObject in DragAndDrop.objectReferences)
                         {
-                            if (draggedObject is AudioClip)
+
+                            //if its a json file load the json file
+                            if (Path.GetExtension(AssetDatabase.GetAssetPath(draggedObject)) == ".json")
+                            {
+                                //Ask for saving
+                                if (audiotrackmgr.audioTracks.Count > 0)
+                                {
+                                    if (EditorUtility.DisplayDialog("Load Json", "Do you want to save the current project?", "Yes", "No"))
+                                    {
+                                        //Save the current project
+                                        if (amgr.autosave)
+                                        {
+                                            amgr.SaveJson(targetfolder + "/" + filename + "_autosave.json");
+                                        }
+                                        else
+                                        {
+                                            amgr.SaveJson(targetfolder + "/" + filename + ".json");
+                                        }
+                                        
+                                    }
+                                }
+                                amgr.LoadJson(AssetDatabase.GetAssetPath(draggedObject));
+
+                                //Disable Preview display
+                                amgr.displayPreview = false;
+                            }
+                            else
+                        if (draggedObject is AudioClip)
                             {
                                 //check if file is .wav
                                 if (Path.GetExtension(AssetDatabase.GetAssetPath(draggedObject)) == ".wav" || Path.GetExtension(AssetDatabase.GetAssetPath(draggedObject)) == ".mp3")
@@ -122,8 +149,11 @@ namespace AnimefanPostUPs_Tools.TimelineView
                                         //Create a new AudioTrack and add it to the AudioTrackManager (audiotrackmgr
                                         AudioTrack newAudioTrack = new AudioTrack(draggedObject as AudioClip);
                                         audiotrackmgr.addAudioTrack(newAudioTrack);
+                                        
                                     }
                                 }
+
+
                             }
                         }
                     }
@@ -235,8 +265,8 @@ namespace AnimefanPostUPs_Tools.TimelineView
                 //Check if first pixel is white
                 if (amgr.displayPreview)
                 {
-                    
-                    EditorGUI.DrawPreviewTexture(new Rect(0, 15, amgr.previewLength * timelinezoom.x, trackHeight -15), amgr.buildTrackpreview, null, ScaleMode.StretchToFill);
+
+                    EditorGUI.DrawPreviewTexture(new Rect(0, 15, amgr.previewLength * timelinezoom.x, trackHeight - 15), amgr.buildTrackpreview, null, ScaleMode.StretchToFill);
                     //Add a Button to the Start to X
 
                     EditorGUI.LabelField(new Rect(19, 18, 100, 16), "Preview");
@@ -345,8 +375,8 @@ namespace AnimefanPostUPs_Tools.TimelineView
 
             GUILayout.EndHorizontal();
 
-                //200 units spacing
-                GUILayout.Space(200);
+            //200 units spacing
+            GUILayout.Space(200);
             GUILayout.EndScrollView();
 
             GUILayout.EndArea();
