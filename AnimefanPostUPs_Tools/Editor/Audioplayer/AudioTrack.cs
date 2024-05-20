@@ -40,10 +40,12 @@ namespace AnimefanPostUPs_Tools.AudioTrack
 
         public bool attemptUpdate = false;
         public AudioClip clip;
+        public string guid = "";
         public string absolutePath;
         public byte[][] audioData; //Final
-
         public byte[][] audioDataNormalized;
+
+
 
 
         public byte[][] sampledChannels;
@@ -53,7 +55,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
         private int _oldChannels = 0;
         private int _oldBitDepth = 0;
         private float _length = 0;
-        public bool muted=false;
+        public bool muted = false;
         Dictionary<string, int> header;
         public float oldtargetgain = 0;
         public float[][] audioCurve;
@@ -227,7 +229,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
         public bool marked_dirty_settings = true;
         public bool marked_dirty_normalization = true;
         public bool marked_dirty_preview = true;
-        public bool marked_dirty_render= true;
+        public bool marked_dirty_render = true;
 
 
 
@@ -235,6 +237,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
         {
             this.clip = clip;
             this.absolutePath = AssetDatabase.GetAssetPath(clip);
+            this.guid = AssetDatabase.AssetPathToGUID(absolutePath);
             previewImage = new Texture2D(512, 255);
             checkUpdate();
         }
@@ -249,7 +252,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 marked_dirty_render = true;
                 update_AudioData();
-                updated_PreviewImage();
+                marked_dirty_preview = true;
                 marked_dirty_settings = false;
             }
 
@@ -257,13 +260,19 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 marked_dirty_render = true;
                 update_NormalizedAudioData();
+
+                if (setting_doNormalizeInput)
+                {
+                    marked_dirty_preview = true;
+                }
+                
                 marked_dirty_normalization = false;
             }
 
             if (marked_dirty_preview || previewImage == null)
             {
                 marked_dirty_render = true;
-                DrawWaveform(getFloatArrayFromSamples(_targetBitDepth, audioData, _targetChannels, audioData[0].Length/2), 512, 255, previewImage);
+                updated_PreviewImage();
                 marked_dirty_preview = false;
             }
 
@@ -335,12 +344,13 @@ namespace AnimefanPostUPs_Tools.AudioTrack
         //Function that loads the audio data from the clip
         //Will execute on loading but can also be called from outside
 
-        public static void DrawWaveform(float[] samples, int width, int height, Texture2D targetTexture)
+        public static void DrawWaveform(float[] samples, int width, int height, Texture2D targetTexture, Color curveColor)
         {
+            //Exit if samples is null
+            if (samples == null || samples.Length == 0 || targetTexture == null) return;
+
             // Create a new texture for the waveform using transparent defaultcolor
 
-            //Definining Curve Color
-            Color curveColor = new Color(0.9f, 0.15f, 0.1f, 0.1f);
 
             //Defining background gracient color
             Color backgroundColor_a = new Color(0.1f, 0.1f, 0.1f, 0.1f);
@@ -383,6 +393,48 @@ namespace AnimefanPostUPs_Tools.AudioTrack
                 // Draw the waveform for this pixel
                 for (int y = minY; y < maxY; y++)
                 {
+                    targetTexture.SetPixel(x, y, curveColor);
+                }
+            }
+
+            // Apply the changes to the texture
+            targetTexture.Apply();
+        }
+
+        public static void DrawWaveformMultiply(float[] samples, int width, int height, Texture2D targetTexture,  Color curveColor)
+        {
+            //Exit if samples is null
+            if (samples == null || samples.Length == 0 || targetTexture == null) return;
+
+            // Create a new texture for the waveform using transparent defaultcolor
+
+            // Calculate the number of samples per pixel 
+            int samplesPerPixel = samples.Length / width;
+
+            for (int x = 0; x < width; x++)
+            {
+                // Calculate the start and end sample index for this pixel
+                int startSampleIndex = x * samplesPerPixel;
+                int endSampleIndex = startSampleIndex + samplesPerPixel;
+
+                // Find the minimum and maximum sample in this range
+                float minSample = samples[startSampleIndex];
+                float maxSample = samples[startSampleIndex];
+                for (int i = startSampleIndex + 1; i < endSampleIndex; i++)
+                {
+                    minSample = Mathf.Min(minSample, samples[i]);
+                    maxSample = Mathf.Max(maxSample, samples[i]);
+                }
+
+                // Map the minimum and maximum sample to the height of the texture
+                int minY = (int)((minSample + 1) / 2 * height);
+                int maxY = (int)((maxSample + 1) / 2 * height);
+
+                // Draw the waveform for this pixel
+                for (int y = minY; y < maxY; y++)
+                {
+                    //get pixels color
+                    Color pixelColor = targetTexture.GetPixel(x, y);
                     targetTexture.SetPixel(x, y, curveColor);
                 }
             }
@@ -487,9 +539,9 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             //Check for File extension
             if (Path.GetExtension(absolutePath) == ".wav")
             {
+                byte[] newWavData = new byte[1];
                 header = WavReader.ReadWavHeader(fileData);
                 audioBytes = WavReader.GetAudioDataFromWav(fileData, clip.length, header["BitsPerSample"] / 8, header["SampleRate"], header["Channels"]);
-                //ReportAudioData(audioBytes, "Read WAV Audio Bytes");
             }
             else if (Path.GetExtension(absolutePath) == ".mp3")
             {
@@ -622,6 +674,199 @@ namespace AnimefanPostUPs_Tools.AudioTrack
 
             return channelData;
         }
+        public int ReadBytes(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length == 0)
+            {
+                throw new ArgumentException("Byte array cannot be null or empty.");
+            }
+
+            uint value = 0;
+
+            // Calculate the value from the byte array
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                value = (value << 8) + bytes[i];
+            }
+
+            // Check if the number is negative
+            if (bytes.Length > 1)
+                if ((bytes[0] & 0x80) > 0) // Check the MSB
+                {
+                    // Invert the bits
+                    value = ~value;
+
+                    // Add 1
+                    value += 1;
+
+                    // Make the result negative and return
+                    return -(int)value;
+                }
+
+            // If the number is positive, just return the value
+            return (int)value;
+        }
+
+        public float ReadBytesFloat(byte[] bytes)
+        {
+
+            //calculate the maximal value of the bytearray
+            float maxvalue = (int)Math.Pow(2,
+            bytes.Length * 8
+            ) - 1;
+
+            if (bytes == null || bytes.Length == 0)
+            {
+                throw new ArgumentException("Byte array cannot be null or empty.");
+            }
+
+            uint value = 0;
+
+            // Calculate the value from the byte array
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                value = (value << 8) + bytes[i];
+            }
+
+            // Check if the number is negative
+            if (bytes.Length > 1)
+                if ((bytes[0] & 0x80) > 0) // Check the MSB
+                {
+                    // Invert the bits
+                    value = ~value;
+
+                    // Add 1
+                    value += 1;
+
+                    // Make the result negative and return
+                    return -(float)value / maxvalue / 2;
+                }
+
+            // If the number is positive, just return the value
+            return (float)value / maxvalue / 2;
+        }
+
+
+        private byte[] GetSampledAudioData_Test(byte[] sourceData, byte[] destinationData, int oldSampleRate, int oldBitDepth, int newSampleRate, int newBitDepth)
+        {
+            // Calculate the number of samples in the original and resampled audio data
+            //Debug newBit
+
+
+            int newSamples = (int)(_length * newSampleRate);
+            int oldSamples = sourceData.Length / (oldBitDepth / 8);
+
+            int oldDepthBytes = oldBitDepth / 8;
+            int newDepthBytes = newBitDepth / 8;
+
+            /*
+                    Debug.Log(
+                        "#Samps: " + newSamples +
+                        "#TByte: " + newSamples * newDepthBytes +
+                        " #Bit: " + newBitDepth +
+                        " #Rate: " + newSampleRate +
+                        " _Samps: " + oldSamples +
+                        " _TByte: " + oldSamples * oldDepthBytes +
+                        " _Bit : " + oldBitDepth +
+                        " _Rate: " + oldSampleRate
+                     );
+                     */
+
+
+
+            int newbytecount = (int)newSamples * newDepthBytes;
+            byte[] resampledBytes = new byte[newbytecount];
+
+            //Float array for resampling
+            float[] floatDataNew = new float[newSamples];
+            float[] floatData = new float[oldSamples];
+            byte[] samplebuffer = new byte[oldDepthBytes];
+
+            //Max Value of new Bitdepth
+            int maxvalueNew = (int)Math.Pow(2, newBitDepth) - 1;
+
+            int totalBytes = (int)Math.Round(targetSampleRate * _length) * (targetBitDepth / 8);
+            //add +1 if total bytes is uneven
+            if (totalBytes % 2 != 0)
+            {
+                totalBytes++;
+            }
+
+            destinationData = new byte[totalBytes];
+
+            // Convert the audio data to a float array depending of if the bitdepth is 8 or above
+            for (int i = 0; i < oldSamples; i++)
+            {
+                for (int j = 0; j < oldDepthBytes; j++)
+                {
+                    samplebuffer[j] = sourceData[i * oldDepthBytes + j];
+                }
+                floatData[i] = ReadBytesFloat(samplebuffer) / (float)Math.Pow(2, oldBitDepth - 1);
+            }
+
+            //Determine the upsample factor
+            int upsampleFactor = newSampleRate / oldSampleRate;
+
+
+
+            if (upsampleFactor <= 1)
+            {
+                Resample(floatData, floatDataNew);
+            }
+            else
+            {
+                floatDataNew = floatData;
+            }
+
+            if (floatDataNew == null)
+            {
+                Debug.LogError("Upsampling failed!");
+                return null;
+            }
+
+            //Convert to byte array
+            for (int i = 0; i < newSamples; i++)
+            {
+                uint value = FloatToUInt(floatDataNew[i], maxvalueNew);
+                for (int j = 0; j < newDepthBytes; j++)
+                {
+                    resampledBytes[i * newDepthBytes + j] = (byte)(value >> (j * 8));
+                }
+            }
+
+
+            return resampledBytes;
+        }
+
+
+        //Function to convert float to uint
+        public static uint FloatToUInt(float value, int maxvalue)
+        {
+
+            bool isNegative = false;
+            //Check if value is negative
+            if (value < 0)
+            {
+                isNegative = true;
+                value = -value;
+            }
+
+            //create uint value
+            uint uintvalue = (uint)(value * maxvalue);
+
+            //if negative invert the bits
+            if (isNegative)
+            {
+                //substract 1
+                uintvalue -= 1;
+
+                //invert the bits
+                uintvalue = ~uintvalue;
+            }
+
+            return uintvalue;
+        }
+
         private byte[] GetSampledAudioData(byte[] audioBytes, int oldSampleRate, int oldBitDepth, int newSampleRate, int newBitDepth)
         {
             // Calculate the number of samples in the original and resampled audio data
@@ -704,19 +949,48 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             return resampledBytes;
         }
 
+
+        public void Resample(float[] originalData, float[] upsampledData)
+        {
+            //Check if To Up or Downsample
+            bool upsample = upsampledData.Length > originalData.Length;
+
+            // Interpolate the new samples
+            for (int i = 0; i < upsampledData.Length; i++)
+            {
+                float percentualIndex = (float)i / upsampledData.Length;
+                int lowerIndex = (int)Math.Floor(percentualIndex * (originalData.Length - 1));
+                int upperIndex = Math.Min((int)Math.Ceiling(percentualIndex * (originalData.Length - 1)), originalData.Length - 1);
+
+                float t = percentualIndex * (originalData.Length - 1) - lowerIndex;
+
+                // Interpolate between the two original samples
+                upsampledData[i] = Lerp(originalData[lowerIndex], originalData[upperIndex], t);
+            }
+        }
+
+        public float Lerp(float a, float b, float t)
+        {
+            return a + (b - a) * t;
+        }
+
         //Updater
         public void updated_PreviewImage()
         {
             if (marked_dirty_preview || previewImage == null)
             {
                 marked_dirty_preview = false;
-                DrawWaveform(getFloatArrayFromSamples(_targetBitDepth, audioData, _targetChannels, audioData[0].Length/2), 512, 255, previewImage);
+                
+                if (_setting_doNormalizeInput && audioDataNormalized != null && audioDataNormalized.Length > 0 && audioDataNormalized[0] != null && audioDataNormalized[0].Length > 0){
+                DrawWaveform(getFloatArrayFromSamples(_targetBitDepth, audioData, _targetChannels, (int)(targetSampleRate*_length)), 512, 255, previewImage, new Color(0.35f, 0.35f, 0.35f, 0.98f));
+                DrawWaveformMultiply(getFloatArrayFromSamples(_targetBitDepth, audioDataNormalized, _targetChannels,(int)( targetSampleRate*_length)), 512, 255, previewImage, new Color(0.8f, 0.1f, 0.1f, 0.98f));
+                } else DrawWaveform(getFloatArrayFromSamples(_targetBitDepth, audioData, _targetChannels, (int)(targetSampleRate*_length)), 512, 255, previewImage, new Color(0.8f, 0.1f, 0.1f, 0.98f));
             }
         }
 
         public void update_NormalizedAudioData()
         {
-            marked_dirty_render=true;
+            marked_dirty_render = true;
             marked_dirty_normalization = false;
             int maxvalue = (int)Math.Pow(2, _targetBitDepth) - 1;
             float targetMax = maxvalue * _targetgain * targetgain_scaling;
@@ -743,17 +1017,19 @@ namespace AnimefanPostUPs_Tools.AudioTrack
             {
                 for (int ch = 0; ch < _targetChannels; ch++)
                     audioDataNormalized[ch] = AudioMixUtils.Normalize(this.audioData[ch], _targetBitDepth, _targetBitDepth > 8, targetMax, _setting_normalizationFac_Input);
-            } else {
-                    //set Normalized Data to original by copying all bytes
-                    for (int ch = 0; ch < _targetChannels; ch++)
+            }
+            else
+            {
+                //set Normalized Data to original by copying all bytes
+                for (int ch = 0; ch < _targetChannels; ch++)
+                {
+                    audioDataNormalized[ch] = new byte[this.audioData[ch].Length];
+                    for (int i = 0; i < this.audioData[ch].Length; i++)
                     {
-                        audioDataNormalized[ch] = new byte[this.audioData[ch].Length];
-                        for (int i = 0; i < this.audioData[ch].Length; i++)
-                        {
-                            audioDataNormalized[ch][i] = this.audioData[ch][i];
-                        }
+                        audioDataNormalized[ch][i] = this.audioData[ch][i];
                     }
-                    
+                }
+
 
             }
         }
@@ -761,9 +1037,17 @@ namespace AnimefanPostUPs_Tools.AudioTrack
 
         public void update_AudioData()
         {
-            marked_dirty_render=true;
+            marked_dirty_render = true;
             marked_dirty_settings = false;
             audioData = GetChannels();
+            //Resample each channel
+            if (_oldSampleRate != _targetSampleRate)
+            {
+                for (int ch = 0; ch < _targetChannels; ch++)
+                {
+                    audioData[ch] = GetSampledAudioData(audioData[ch], _oldSampleRate, _oldBitDepth, _targetSampleRate, _targetBitDepth);
+                }
+            }
         }
 
 

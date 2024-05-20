@@ -796,14 +796,19 @@ public class Audiotimeline : EditorWindow
 
     private AudioClip getMixClip()
     {
+
+        string addition="";
+
+        if (audioManager.autobuild) addition="_auto";
+
         if (firstTime)
         {
             firstTime = false;
-            audioManager.createMix(targetfolder, filename + "_auto");
+            audioManager.createMix(targetfolder, filename + addition);
         }
 
         //find LiveMixTemp.wav in the folderpath
-        string path = targetfolder + "/" + filename + "_auto" + ".wav";
+        string path = targetfolder + "/" + filename + addition + ".wav";
         //get relative path
         string relativepath = path.Replace(Application.dataPath, "Assets");
 
@@ -998,7 +1003,7 @@ public class Audiotimeline : EditorWindow
             GUILayout.BeginHorizontal();
             float oldtargetgain = track.targetgain;
 
-            track.targetgain = GUILayout.HorizontalSlider(track.targetgain, 0, 1, GUILayout.Width(widthSidePanel - 85));
+            track.targetgain = GUILayout.HorizontalSlider(track.targetgain, 0, 3, GUILayout.Width(widthSidePanel - 85));
             //Label with red background
 
             GUILayout.Label(track.targetgain.ToString("0.00"), buttonStyle3);

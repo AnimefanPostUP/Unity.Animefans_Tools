@@ -11,6 +11,11 @@ namespace AnimefanPostUPs_Tools.AudioMixUtils
 
         public static byte[] Normalize(byte[] audioData, int bitDepth, bool considerSignBit, float targetMax, float strength)
         {
+            //return if audiodata is null or empty
+            if (audioData == null || audioData.Length == 0)
+            {
+                return audioData;
+            }
 
             //Debug all inputs
             //Debug.Log("AudioData: " + audioData+" bitDepth: "+bitDepth+" considerSignBit: "+considerSignBit+" targetMax: "+targetMax+" strength: "+strength);
@@ -35,7 +40,8 @@ namespace AnimefanPostUPs_Tools.AudioMixUtils
             //Debug.Log("CurrentMax: " + currentMax + " NormalizationFactor: " + normalizationFactor);
             for (int i = 0; i < audioDataFloat.Length; i++)
             {
-                audioDataFloat[i] *= Math.Lerp(1, normalizationFactor, strength);
+                audioDataFloat[i] *= normalizationFactor;
+                audioDataFloat[i] = audioDataFloat[i] * strength;
             }
 
             // Convert back to byte array

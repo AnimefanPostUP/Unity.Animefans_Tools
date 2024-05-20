@@ -44,7 +44,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
         public bool autosave = false;
         public bool optimizedBuild = false;
 
-        public bool internalupdate=false;
+        public bool internalupdate = false;
 
         public byte[][] mixedData;
         public int totallength = 0;
@@ -99,10 +99,10 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
             this.targetgain_In = targetgain_In;
             this.targetgain_Out = targetgain_Out;
-            
+
             if (autosave)
             {
-                internalupdate=true;
+                internalupdate = true;
             }
 
             reloadAudioData();
@@ -242,7 +242,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
             int samples = getMixLength(0) / (targetBitDepth / 8);
             previewLength = (float)samples / targetSampleRate;
-            AudioTrack.DrawWaveform(AudioTrack.getFloatArrayFromSamples(targetBitDepth, targetdata, targetChannels, samples), buildTrackpreview.width, buildTrackpreview.height, buildTrackpreview);
+            AudioTrack.DrawWaveform(AudioTrack.getFloatArrayFromSamples(targetBitDepth, targetdata, targetChannels, samples), buildTrackpreview.width, buildTrackpreview.height, buildTrackpreview, new Color(0.9f, 0.2f, 0.2f, 1));
             this.displayPreview = true;
 
             //Debug file exist
@@ -369,7 +369,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
                     //Adjust Value based on amounts of Tracks that Contributed
                     if (counter == 0) { counter = 1; }
-                    long mixedSample = sum / numTracks/2;
+                    long mixedSample = sum / numTracks / 2;
                     counter = 0;
 
                     byte[] mixedSampleBytes = new byte[bytesPerSample];
@@ -566,6 +566,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
         public class AudioData
         {
             public string[] ClipPaths;
+            public string[] GUIDs;
             public float[] InitTimes;
             public float[] targetgains;
             public bool[] muted;
@@ -604,7 +605,25 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
             // Try to find and add the Clips
             for (int i = 0; i < audioData.ClipPaths.Length; i++)
             {
-                AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(audioData.ClipPaths[i]);
+
+                //Try get the clip using the GUID
+                string assetPath = "";
+                if (audioData.GUIDs !=null && audioData.GUIDs[i] != "" )
+                {
+                    assetPath = AssetDatabase.GUIDToAssetPath(audioData.GUIDs[i]);
+                    //check if the asset exists
+                    if (assetPath == "")
+                    {
+                        assetPath = audioData.ClipPaths[i];
+                    }
+
+                }
+                else
+                {
+                    assetPath = audioData.ClipPaths[i];
+                }
+
+                AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(assetPath);
                 if (clip != null)
                 {
                     AudioTrack audioTrack = new AudioTrack(clip);
@@ -645,6 +664,7 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
             AudioData audioData = new AudioData
             {
                 ClipPaths = new string[audioTracks.Count],
+                GUIDs = new string[audioTracks.Count],
                 InitTimes = new float[audioTracks.Count],
                 targetgains = new float[audioTracks.Count],
                 muted = new bool[audioTracks.Count],
@@ -669,9 +689,11 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
             for (int i = 0; i < audioTracks.Count; i++)
             {
                 audioData.ClipPaths[i] = AssetDatabase.GetAssetPath(audioTracks[i].clip);
+                audioData.GUIDs[i] = audioTracks[i].guid;
                 audioData.InitTimes[i] = audioTracks[i].initTime;
                 audioData.targetgains[i] = audioTracks[i].targetgain;
                 audioData.muted[i] = audioTracks[i].muted;
+                audioData.GUIDs[i] = audioTracks[i].guid;
 
             }
 
