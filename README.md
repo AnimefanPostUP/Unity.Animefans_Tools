@@ -84,8 +84,12 @@ find all your Textures easly
 - **Save / SaveAs** Projects as Json
 - **Load** the Jsons
 - **Render / RenderAs** to save it as a WavFile
-- Quickrender Button (CPU Icon on the Right Side of the Dropdown)
+- **Backup** will save a Jsonfill with a Timestamp, usefull to make sure, that you dont Overwrite your Files
+- **Quickrender** (CPU Icon on the Right Side of the Dropdown, does the same as the Render Button)
+- **Load** the Jsons
 
+### Extras:
+- **Synch** will Synch the Windows Position etc. with the Animation Window, will also Synch the Playbutton with the Audio, if its Rendered
 
 ### Automatic Extras:
 - The Addon Autoloads the Lastes Json on Startup (Searches for the _autosave first)
