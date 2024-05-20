@@ -118,7 +118,11 @@ find all your Textures easly
 - **Save** (Will Apply all Settings to the Project)
 
 
-   
+</br></br></br>
+
+
+## Notes
+- The Filesize of Wav Files can Explode Rapidly, you may Adjust the Quality and allow Unity to Change the Samplerate/Optimizing it
 
 ![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/9c483b34-296d-4901-b8e8-3e0febc2ca56)
 
