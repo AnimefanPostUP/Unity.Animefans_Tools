@@ -21,25 +21,43 @@ Hide and Show Icons
 -Adjustable Preview Size for Performance
 
 ### Audio Timeline Editor:
+![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/f69f0be1-26db-415d-b1ef-57d4c02981a9)
 
-![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/77c2a7a6-0a4c-414b-b5e7-c39a0ada4c6f)
+Generally: Combine and Offset Audio Clips!
 
-![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/ed5d6a49-ae82-4f0a-8675-7d73b8072651)
+![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/ee9c31f6-0125-4ab8-9ac8-e1ea02a13888)
 
-Functions
--Synched Playback with the Animation Window
--Offset, Render as Wav, Conmbine Audioclips (.MP3 or .WAV)
--Saving, Loading functions of a Json Project File
+Main Functions:
+-Drag and Drop of AudioClips and the Json files
+-Drag the Clips in the Timeline with Left Mouse
 
--Control/Shift to Snap
--Alt to Scroll around / Shift to Reset View
--Drag Clips Around Simply
+Navigation:
+-Alt and Mouse to Move around
+-Shift to Reset Position
+-Control and Mousewheel to Scale (When Not in "Synch" you can also Scroll)
 
--Remove, Reload and Resert Position
--Settings for Bitrate, Samplingrate and Channelcount Available
--Renders the Waveform in the UI
--Live Fileoutput for Preview
+![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/9fc1ef32-10e4-4f2f-af38-b5911dde0d36)
 
-WIP:
--Mixing Quality will be improved Later
--Audio Normalization, Equalizer etc. Follows Later
+-Change the Volume using the Slider (Can also Boost!)
+-Temporarely remove Clip from Rendering (Eye)
+-Remove Clip (X)
+-Reload the Clips Preview and Loaded Data (2 Arrows)
+-Snap Clip to 0 (Yellow Arrow in a Box)
+
+
+Pinging:
+-Ping Clips by Clicking the Clips Name in the Sidepanel
+-Ping Json,Sourcefolder and Rendered File with a Button
+
+
+
+![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/f5f7ef57-6f96-45df-abec-5ea7b25f0c5c)
+
+-Save the Clip Arrangement in a Json
+-Load the Project Files
+-Save and SaveAs Options
+-Quickrender Button (CPU Icon on the Right Side of the Dropdown)
+
+![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/08f90128-32b2-4ca2-a6d3-5aa2506d0494)
+
+
