@@ -75,7 +75,7 @@ namespace AnifansAssetManager.FolderInfo
 
         public FolderInfo(string path, string name)
         {
-            AssetChangeDetector.AssetChanged += OnAssetChanged;
+            //AssetChangeDetector.AssetChanged += OnAssetChanged;
 
             this.path = path;
             this.name = name;
@@ -87,7 +87,7 @@ namespace AnifansAssetManager.FolderInfo
 
         public void unload()
         {
-            AssetChangeDetector.AssetChanged -= OnAssetChanged;
+            //AssetChangeDetector.AssetChanged -= OnAssetChanged;
             foreach (ew_FileInfo file in files)
             {
                 if (file.preview != null)
@@ -410,7 +410,7 @@ namespace AnifansAssetManager.FolderInfo
 
 
     }
-    public class AssetChangeDetector : AssetPostprocessor
+    public class AssetChangeDetector //: AssetPostprocessor
     {
         public static event Action<string[], string[], string[], string[]> AssetChanged;
 
