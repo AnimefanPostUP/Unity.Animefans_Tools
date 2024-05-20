@@ -85,6 +85,18 @@ namespace AnifansAssetManager.FolderInfo
             reloadFiles();
         }
 
+        public void unload()
+        {
+            AssetChangeDetector.AssetChanged -= OnAssetChanged;
+            foreach (ew_FileInfo file in files)
+            {
+                if (file.preview != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(file.preview);
+                }
+            }
+        }
+
         //Functon to return Filetype Enum
         public FileTypes getFileType(string path)
         {
@@ -113,18 +125,31 @@ namespace AnifansAssetManager.FolderInfo
 
         private void OnAssetChanged(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
-            findNewFiles();
-            removeMovedFiles();
-            removeDeletedFiles(deletedAssets);
+            string feedback = "[AssetManager] Files changed";
+            feedback = feedback + findNewFiles();
+            feedback = feedback + removeMovedFiles();
+            feedback = feedback + removeDeletedFiles(deletedAssets);
+            Debug.Log(feedback);
 
 
         }
 
-        public async void removeDeletedFiles(string[] deletedAssets)
+        public string removeDeletedFiles(string[] deletedAssets)
         {
+            string feedback = "";
+            int counter_files = 0;
+            int counter_previews = 0;
             //check if the file is inside files array
+
             foreach (string path in deletedAssets)
             {
+
+                //Check for Extension and if none then Skip
+                string absolutePath = Path.GetFullPath(path);
+                string extension = Path.GetExtension(absolutePath);
+                if (string.IsNullOrEmpty(extension)) continue;
+
+
                 ew_FileInfo file = files.Find(x => x.path == path);
                 if (file != null)
                 {
@@ -132,20 +157,29 @@ namespace AnifansAssetManager.FolderInfo
                     if (file.preview != null)
                     {
                         UnityEngine.Object.DestroyImmediate(file.preview);
+                        counter_previews++;
                     }
                     files.Remove(file);
+                    counter_files++;
                 }
             }
+            return "\n removed " + counter_files + " deleted files /" + "with " + counter_previews + "previews";
         }
 
-        public async void removeMovedFiles()
+        public string removeMovedFiles()
         {
-
+            string feedback = "";
+            int counter_files = 0;
+            int counter_previews = 0;
             // Iterate over all files
             foreach (ew_FileInfo file in files)
             {
                 // Convert Unity relative path to system absolute path
                 string absolutePath = Path.GetFullPath(file.path);
+
+                //Check for Extension and if none then Skip
+                string extension = Path.GetExtension(absolutePath);
+                if (string.IsNullOrEmpty(extension)) continue;
 
                 // Check if the file still exists at the path
                 if (!System.IO.File.Exists(absolutePath))
@@ -154,17 +188,22 @@ namespace AnifansAssetManager.FolderInfo
                     if (file.preview != null)
                     {
                         UnityEngine.Object.DestroyImmediate(file.preview);
+                        counter_previews++;
                     }
 
                     // Remove the file from the list
                     files.Remove(file);
+                    counter_files++;
                 }
             }
+            return "\n  removed " + counter_files + " deleted files /" + "with " + counter_previews + "previews";
 
         }
 
-        public async void findNewFiles()
+        public string findNewFiles()
         {
+            string feedback = "";
+            int counter = 0;
 
             //Get all Files in the Folder
             string[] assetGuids = AssetDatabase.FindAssets("", new[] { path });
@@ -175,6 +214,7 @@ namespace AnifansAssetManager.FolderInfo
             foreach (string guid in assetGuids)
             {
 
+
                 //Break if the file is already in the list
                 if (files.Exists(x => x.guid == guid))
                 {
@@ -183,7 +223,13 @@ namespace AnifansAssetManager.FolderInfo
 
                 //Debug.Log("Loading: " + guid);
                 string assetPath = AssetDatabase.GUIDToAssetPath(guid);
-                await addFile(assetPath, guid);
+
+                //Check for Extension and if none then Skip
+                string absolutePath = Path.GetFullPath(assetPath);
+                string extension = Path.GetExtension(absolutePath);
+                if (string.IsNullOrEmpty(extension)) continue;
+
+                addFile(assetPath, guid);
                 countervar++;
                 if (countervar > 2000)
                 {
@@ -193,6 +239,7 @@ namespace AnifansAssetManager.FolderInfo
             }
             setResolutions();
             generateProxyNames();
+            return "\n added " + countervar + "new files ";
         }
 
 
@@ -221,8 +268,12 @@ namespace AnifansAssetManager.FolderInfo
             int countervar = 0;
             foreach (string guid in assetGuids)
             {
-                //Debug.Log("Loading: " + guid);
                 string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                //Check for Extension and if none then Skip
+                string absolutePath = Path.GetFullPath(assetPath);
+                string extension = Path.GetExtension(absolutePath);
+                if (string.IsNullOrEmpty(extension)) continue;
+
                 await addFile(assetPath, guid);
                 countervar++;
                 if (countervar > 2000)
@@ -261,8 +312,6 @@ namespace AnifansAssetManager.FolderInfo
                 files[i].nameproxy = newNames[i];
             }
         }
-
-
 
 
         public string[] RemoveCommonParts(string[] strings)
@@ -327,6 +376,11 @@ namespace AnifansAssetManager.FolderInfo
             foreach (ew_FileInfo file in files)
             {
                 file.previewResolution = previewResolution;
+                if (file.preview != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(file.preview);
+                }
+                file.preview=null;
                 file.tryGetPeview();
             }
         }

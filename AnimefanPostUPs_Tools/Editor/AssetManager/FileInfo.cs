@@ -46,14 +46,16 @@ namespace AnifansAssetManager.FileInfo
                 if (preview != null)
                 {
 
-                    if (this.preview == null)
+                    if (this.preview == null) //if not initialized
                     {
+                        //1:1 or custom resolution
                         if (previewResolution != -1)
                             this.preview = new Texture2D(previewResolution, previewResolution, preview.format, false);
 
                         else this.preview = new Texture2D(preview.width, preview.height, preview.format, false);
                     }
 
+                    //Copy Texture Data
                     CopyTexture(preview, this.preview);
                 }
             }

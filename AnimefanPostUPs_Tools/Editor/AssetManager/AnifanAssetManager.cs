@@ -100,6 +100,12 @@ public class AnifanAssetManager : EditorWindow
 
         colmgr.Unload();
 
+        //iterate all FolderInfos and unload the files
+        foreach (FolderInfo folder in folders)
+        {
+            folder.unload();
+        }
+
     }
 
     void init_menu_Previews()
