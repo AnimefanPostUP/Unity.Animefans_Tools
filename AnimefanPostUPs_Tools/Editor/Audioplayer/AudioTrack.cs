@@ -10,7 +10,7 @@ namespace AnimefanPostUPs_Tools.AudioTrack
     using System.Text;
     using System.Collections;
     using System.Reflection;
-    using Unity.EditorCoroutines.Editor;
+    //using Unity.EditorCoroutines.Editor;
     using System.Linq;
     using System.IO;
     using System.Threading.Tasks;
