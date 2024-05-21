@@ -701,6 +701,7 @@ public class AnifanAssetManager : EditorWindow
 
 
                 //Breaking Over to New Line
+                if (maxColumns>0)
                 if (columnCount % maxColumns == 0 && columnCount != 0)
                 {
                     GUILayout.FlexibleSpace(); // Add flexible space to align the content to the left

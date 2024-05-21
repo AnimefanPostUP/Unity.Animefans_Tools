@@ -136,7 +136,7 @@ namespace AnimefanPostUPs_Tools.TimelineView
                                 amgr.LoadJson(AssetDatabase.GetAssetPath(draggedObject));
 
                                 //Disable Preview display
-                                amgr.displayPreview = false;
+                                
                             }
                             else
                         if (draggedObject is AudioClip)

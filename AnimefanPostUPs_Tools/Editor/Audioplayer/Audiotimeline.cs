@@ -9,7 +9,7 @@ using System;
 using System.Text;
 using System.Collections;
 using System.Reflection;
-using Unity.EditorCoroutines.Editor;
+//using Unity.EditorCoroutines.Editor;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
@@ -1061,7 +1061,7 @@ public class Audiotimeline : EditorWindow
             }
             else if (File.Exists(targetfolder + "/" + filename + ".json"))
             {
-                EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(folderpathrelative + "/" + filename + ".json"));
+                EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(targetfolder + "/" + filename + ".json"));
             }
         }
 
