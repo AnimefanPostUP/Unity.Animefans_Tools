@@ -242,6 +242,13 @@ namespace AnimefanPostUPs_Tools.AudioTrackManager
 
             int samples = getMixLength(0) / (targetBitDepth / 8);
             previewLength = (float)samples / targetSampleRate;
+
+            //Check Texture2D and recreate if null
+            if (buildTrackpreview == null)
+            {
+                buildTrackpreview = new Texture2D(2048, 255);
+            }
+
             AudioTrack.DrawWaveform(AudioTrack.getFloatArrayFromSamples(targetBitDepth, targetdata, targetChannels, samples), buildTrackpreview.width, buildTrackpreview.height, buildTrackpreview, new Color(0.9f, 0.2f, 0.2f, 1));
             this.displayPreview = true;
 
