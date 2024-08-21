@@ -1,10 +1,7 @@
 # AnimefanPostUPs-Tools
 
 Make sure the Path is like this:
-\Assets\AnimefanPostUPs-Tools\AnimefanPostUPs_Tools\Editor\AssetManager
-
-Put the Folder "AnimefanPostUPs_Tools"
-into a Folder called AnimefanPostUPs-Tools
+/AnimefanPostUPs_Tools/Editor/NAudio-1.8.0-Release/
  
 # Easy Window:
 ![image](https://github.com/AnimefanPostUP/Unity.Animefans_Tools/assets/93488236/7d86e98d-28fb-4d81-9ebb-684a145e99ae)
